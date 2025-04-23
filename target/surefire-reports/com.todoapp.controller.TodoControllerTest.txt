@@ -1,4 +1,0 @@
--------------------------------------------------------------------------------
-Test set: com.todoapp.controller.TodoControllerTest
--------------------------------------------------------------------------------
-Tests run: 9, Failures: 0, Errors: 0, Skipped: 0, Time elapsed: 2.319 s - in com.todoapp.controller.TodoControllerTest
