@@ -1,0 +1,12 @@
+# Documentation
+api:
+  format: "OpenAPI 3.0"
+  location: "src/main/resources/api-docs"
+    
+code:
+  required:
+    - "@param"
+    - "@return"
+    - "@throws"
+  classes: true
+  public_methods: true 

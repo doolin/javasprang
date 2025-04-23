@@ -1,0 +1,84 @@
+# Testing Standards
+backend:
+  unit_tests: "src/test/java"
+  test_naming: "{TestedClass}Test"
+  coverage:
+    minimum: 80
+    exclude:
+      - "**/model/**"
+      - "**/dto/**"
+      - "**/config/**"
+    report_format: ["html", "xml"]
+    fail_on_violation: true
+  integration_tests:
+    location: "src/test/java/integration"
+    naming: "{Resource}IntegrationTest"
+    categories:
+      - "repository"
+      - "service"
+      - "controller"
+    database:
+      type: "testcontainers"
+      cleanup: "after_each"
+  mock_data:
+    location: "src/test/resources/mock"
+    naming: "{resource}_mock.json"
+    generators:
+      - "faker"
+      - "builder"
+    
+frontend:
+  unit_tests: "*.spec.ts"
+  e2e_tests: "e2e/"
+  coverage:
+    minimum: 80
+    exclude:
+      - "**/environments/**"
+      - "**/polyfills.ts"
+      - "**/test.ts"
+    report_format: ["html", "lcov"]
+    fail_on_violation: true
+  integration_tests:
+    location: "src/app/**/*.integration.spec.ts"
+    naming: "{component}.integration.spec.ts"
+    categories:
+      - "component"
+      - "service"
+      - "store"
+  mock_data:
+    location: "src/app/testing/mocks"
+    naming: "{resource}.mock.ts"
+    types:
+      - "interface"
+      - "factory"
+  playwright:
+    location: "e2e/"
+    test_naming: "{feature}.spec.ts"
+    config: "playwright.config.ts"
+    fixtures: "fixtures/"
+    pages: "pages/"
+    components: "components/"
+    utils: "utils/"
+    reports: "reports/"
+    screenshots: "screenshots/"
+    videos: "videos/"
+    browsers: ["chromium", "firefox", "webkit"]
+    viewport: 
+      width: 1280
+      height: 720
+    retries: 2
+    timeout: 30000
+    parallel: true
+    workers: 4
+    reporter: ["html", "list"]
+    base_url: "http://localhost:4200"
+    trace: "on-first-retry"
+    video: "on-first-retry"
+    screenshot: "only-on-failure"
+    coverage:
+      enabled: true
+      reporter: ["html", "json"]
+      exclude:
+        - "**/node_modules/**"
+        - "**/test/**"
+        - "**/*.spec.ts" 

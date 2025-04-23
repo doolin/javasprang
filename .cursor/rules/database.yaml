@@ -1,0 +1,44 @@
+# Database Conventions
+naming:
+  tables: "snake_case"
+  columns: "snake_case"
+  primary_keys: "id"
+  foreign_keys: "{table_name}_id"
+    
+constraints:
+  primary_key: "pk_{table_name}"
+  foreign_key: "fk_{table_name}_{referenced_table}"
+  unique: "uq_{table_name}_{column}"
+
+indexes:
+  naming: "ix_{table_name}_{column}"
+  types:
+    btree: "default"
+    gin: "for_array_or_json"
+    gist: "for_spatial"
+  common_indexes:
+    - "created_at"
+    - "updated_at"
+    - "deleted_at"
+    - "{foreign_key}_id"
+
+timestamps:
+  created_at:
+    type: "timestamp with time zone"
+    default: "CURRENT_TIMESTAMP"
+    nullable: false
+  updated_at:
+    type: "timestamp with time zone"
+    default: "CURRENT_TIMESTAMP"
+    on_update: "CURRENT_TIMESTAMP"
+    nullable: false
+  deleted_at:
+    type: "timestamp with time zone"
+    nullable: true
+    index: true
+
+soft_delete:
+  enabled: true
+  column: "deleted_at"
+  index: true
+  queries: "WHERE deleted_at IS NULL" 

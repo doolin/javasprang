@@ -1,0 +1,54 @@
+# Angular 2 Best Practices
+components:
+  naming: "{feature}-{type}"
+  structure:
+    - "{name}.component.ts"
+    - "{name}.component.html"
+    - "{name}.component.scss"
+    - "{name}.component.spec.ts"
+
+services:
+  naming: "{feature}.service"
+    
+modules:
+  core: "CoreModule"
+  shared: "SharedModule"
+  feature: "{Feature}Module"
+    
+style:
+  selector_prefix: "app-"
+  max_line_length: 100
+  indent_size: 2
+
+state_management:
+  library: "ngrx"
+  store_structure:
+    - actions/
+    - reducers/
+    - effects/
+    - selectors/
+    - models/
+  naming:
+    actions: "{feature}.actions"
+    reducers: "{feature}.reducer"
+    effects: "{feature}.effects"
+    selectors: "{feature}.selectors"
+    models: "{feature}.model"
+
+routing:
+  lazy_loading: true
+  module_naming: "{feature}-routing.module"
+  path_naming: "kebab-case"
+  route_structure:
+    - path: ""
+      component: "{Feature}Component"
+    - path: ":id"
+      component: "{Feature}DetailComponent"
+  guards:
+    naming: "{feature}.guard"
+    location: "core/guards/"
+
+lazy_loading:
+  pattern: "loadChildren: './features/{feature}/{feature}.module#FeatureModule'"
+  chunk_naming: "{feature}-chunk"
+  preloading_strategy: "PreloadAllModules" 

@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>UserService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">todo-app</a> &gt; <a href="index.source.html" class="el_package">com.todoapp.service</a> &gt; <span class="el_source">UserService.java</span></div><h1>UserService.java</h1><pre class="source lang-java linenums">package com.todoapp.service;
+
+import com.todoapp.entity.User;
+import com.todoapp.repository.UserRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.Instant;
+import java.util.List;
+import java.util.Optional;
+
+@Service
+public class UserService {
+    private final UserRepository userRepository;
+
+    @Autowired
+<span class="fc" id="L17">    public UserService(UserRepository userRepository) {</span>
+<span class="fc" id="L18">        this.userRepository = userRepository;</span>
+<span class="fc" id="L19">    }</span>
+
+    public List&lt;User&gt; findAll() {
+<span class="fc" id="L22">        return userRepository.findAll();</span>
+    }
+
+    public User findById(Long id) {
+<span class="fc" id="L26">        return userRepository.findById(id)</span>
+<span class="fc" id="L27">                .orElseThrow(() -&gt; new RuntimeException(&quot;User not found with id: &quot; + id));</span>
+    }
+
+    public User save(User user) {
+<span class="fc" id="L31">        return userRepository.save(user);</span>
+    }
+
+    public void deleteById(Long id) {
+<span class="fc" id="L35">        userRepository.deleteById(id);</span>
+<span class="fc" id="L36">    }</span>
+
+    public Optional&lt;User&gt; findByUsername(String username) {
+<span class="fc" id="L39">        return userRepository.findByUsername(username);</span>
+    }
+
+    public Optional&lt;User&gt; findByEmail(String email) {
+<span class="fc" id="L43">        return userRepository.findByEmail(email);</span>
+    }
+
+    public User softDelete(Long id) {
+<span class="fc" id="L47">        User user = findById(id);</span>
+<span class="fc" id="L48">        user.setDeletedAt(Instant.now());</span>
+<span class="fc" id="L49">        return userRepository.save(user);</span>
+    }
+} 
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>

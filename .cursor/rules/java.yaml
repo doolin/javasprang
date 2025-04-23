@@ -1,0 +1,27 @@
+# Java/Spring Best Practices
+package_naming: "com.todoapp.{module}"
+
+class_naming:
+  controllers: "{Resource}Controller"
+  services: "{Resource}Service"
+  repositories: "{Resource}Repository"
+  entities: "{Resource}"
+  dtos: "{Resource}DTO"
+
+method_naming:
+  controllers: "camelCase"
+  services: "camelCase"
+  repositories: "findBy*, save, delete"
+
+style:
+  max_line_length: 120
+  indent_size: 4
+  braces_style: "end_of_line"
+    
+spring:
+  annotations:
+    controllers: "@RestController"
+    services: "@Service"
+    repositories: "@Repository"
+    entities: "@Entity"
+  path_prefix: "/api/v1" 

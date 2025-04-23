@@ -1,0 +1,9 @@
+com/todoapp/controller/UserControllerTest.class
+com/todoapp/repository/TodoRepositoryTest.class
+com/todoapp/entity/TodoTest.class
+com/todoapp/repository/UserRepositoryTest.class
+com/todoapp/controller/TodoControllerTest.class
+com/todoapp/entity/UserTest.class
+com/todoapp/config/TestConfig.class
+com/todoapp/service/TodoServiceTest.class
+com/todoapp/service/UserServiceTest.class

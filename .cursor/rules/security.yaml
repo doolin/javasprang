@@ -1,0 +1,60 @@
+# Security Guidelines
+authentication:
+  jwt:
+    header: "Authorization"
+    prefix: "Bearer "
+    expiration: 86400000  # 24 hours
+    refresh_token:
+      expiration: 604800000  # 7 days
+      rotation: true
+      reuse_detection: true
+    
+password:
+  min_length: 8
+  require_special_char: true
+  require_number: true
+  require_uppercase: true
+  history_size: 5
+  max_age_days: 90
+  reset_token:
+    expiration: 3600000  # 1 hour
+    length: 32
+    attempts: 3
+    
+cors:
+  allowed_origins: ["http://localhost:4200"]
+  allowed_methods: ["GET", "POST", "PUT", "DELETE"]
+  allowed_headers: ["Authorization", "Content-Type"]
+  max_age: 3600
+  allow_credentials: true
+
+rate_limiting:
+  enabled: true
+  default:
+    requests: 100
+    period: 60  # seconds
+  auth:
+    login:
+      requests: 5
+      period: 300  # 5 minutes
+    register:
+      requests: 3
+      period: 3600  # 1 hour
+  api:
+    requests: 1000
+    period: 3600  # 1 hour
+
+session:
+  timeout: 1800  # 30 minutes
+  max_sessions: 5
+  concurrent_sessions: false
+  ip_binding: true
+  user_agent_tracking: true
+
+security_headers:
+  x_frame_options: "DENY"
+  x_content_type_options: "nosniff"
+  x_xss_protection: "1; mode=block"
+  content_security_policy: "default-src 'self'"
+  strict_transport_security: "max-age=31536000; includeSubDomains"
+  referrer_policy: "strict-origin-when-cross-origin" 

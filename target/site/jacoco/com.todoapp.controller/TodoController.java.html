@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>TodoController.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">todo-app</a> &gt; <a href="index.source.html" class="el_package">com.todoapp.controller</a> &gt; <span class="el_source">TodoController.java</span></div><h1>TodoController.java</h1><pre class="source lang-java linenums">package com.todoapp.controller;
+
+import com.todoapp.entity.Todo;
+import com.todoapp.entity.User;
+import com.todoapp.service.TodoService;
+import com.todoapp.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
+
+@RestController
+@RequestMapping(&quot;/api/todos&quot;)
+public class TodoController {
+    private final TodoService todoService;
+    private final UserService userService;
+
+    @Autowired
+<span class="fc" id="L20">    public TodoController(TodoService todoService, UserService userService) {</span>
+<span class="fc" id="L21">        this.todoService = todoService;</span>
+<span class="fc" id="L22">        this.userService = userService;</span>
+<span class="fc" id="L23">    }</span>
+
+    @GetMapping
+    public List&lt;Todo&gt; getAllTodos() {
+<span class="fc" id="L27">        return todoService.findAll();</span>
+    }
+
+    @GetMapping(&quot;/{id}&quot;)
+    public Todo getTodoById(@PathVariable Long id) {
+<span class="fc" id="L32">        return todoService.findById(id);</span>
+    }
+
+    @PostMapping
+    public Todo createTodo(@RequestBody Todo todo) {
+<span class="fc" id="L37">        return todoService.save(todo);</span>
+    }
+
+    @PutMapping(&quot;/{id}&quot;)
+    public Todo updateTodo(@PathVariable Long id, @RequestBody Todo todo) {
+<span class="fc" id="L42">        todo.setId(id);</span>
+<span class="fc" id="L43">        return todoService.save(todo);</span>
+    }
+
+    @DeleteMapping(&quot;/{id}&quot;)
+    public ResponseEntity&lt;?&gt; deleteTodo(@PathVariable Long id) {
+<span class="fc" id="L48">        todoService.deleteById(id);</span>
+<span class="fc" id="L49">        return ResponseEntity.ok().build();</span>
+    }
+
+    @GetMapping(&quot;/user/{userId}&quot;)
+    public List&lt;Todo&gt; getTodosByUser(@PathVariable Long userId) {
+<span class="fc" id="L54">        User user = userService.findById(userId);</span>
+<span class="fc" id="L55">        return todoService.findByUser(user);</span>
+    }
+
+    @GetMapping(&quot;/user/{userId}/completed/{completed}&quot;)
+    public List&lt;Todo&gt; getTodosByUserAndCompleted(
+            @PathVariable Long userId,
+            @PathVariable boolean completed) {
+<span class="fc" id="L62">        User user = userService.findById(userId);</span>
+<span class="fc" id="L63">        return todoService.findByUserAndCompleted(user, completed);</span>
+    }
+
+    @PutMapping(&quot;/{id}/complete&quot;)
+    public Todo markAsCompleted(@PathVariable Long id) {
+<span class="fc" id="L68">        return todoService.markAsCompleted(id);</span>
+    }
+
+    @DeleteMapping(&quot;/{id}/soft&quot;)
+    public Todo softDelete(@PathVariable Long id) {
+<span class="fc" id="L73">        return todoService.softDelete(id);</span>
+    }
+} 
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
