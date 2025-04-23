@@ -71,7 +71,7 @@ public class TodoControllerTest {
     void whenGetAllTodos_thenReturnJsonArray() throws Exception {
         when(todoService.findAll()).thenReturn(Arrays.asList(testTodo));
 
-        mockMvc.perform(get("/api/todos"))
+        mockMvc.perform(get("/api/v1/todos"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$[0].title").value("Test Todo"));
@@ -81,7 +81,7 @@ public class TodoControllerTest {
     void whenGetTodoById_thenReturnJson() throws Exception {
         when(todoService.findById(1L)).thenReturn(testTodo);
 
-        mockMvc.perform(get("/api/todos/1"))
+        mockMvc.perform(get("/api/v1/todos/1"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.title").value("Test Todo"));
@@ -91,7 +91,7 @@ public class TodoControllerTest {
     void whenCreateTodo_thenReturnJsonTodo() throws Exception {
         when(todoService.save(any(Todo.class))).thenReturn(testTodo);
 
-        mockMvc.perform(post("/api/todos")
+        mockMvc.perform(post("/api/v1/todos")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(testTodo)))
                 .andExpect(status().isOk())
@@ -103,7 +103,7 @@ public class TodoControllerTest {
         when(todoService.findById(1L)).thenReturn(testTodo);
         when(todoService.save(any(Todo.class))).thenReturn(testTodo);
 
-        mockMvc.perform(put("/api/todos/1")
+        mockMvc.perform(put("/api/v1/todos/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(testTodo)))
                 .andExpect(status().isOk())
@@ -114,7 +114,7 @@ public class TodoControllerTest {
     void whenDeleteTodo_thenReturn200() throws Exception {
         when(todoService.findById(1L)).thenReturn(testTodo);
 
-        mockMvc.perform(delete("/api/todos/1"))
+        mockMvc.perform(delete("/api/v1/todos/1"))
                 .andExpect(status().isOk());
     }
 
@@ -123,7 +123,7 @@ public class TodoControllerTest {
         when(userService.findById(1L)).thenReturn(testUser);
         when(todoService.findByUser(testUser)).thenReturn(Arrays.asList(testTodo));
 
-        mockMvc.perform(get("/api/todos/user/1"))
+        mockMvc.perform(get("/api/v1/todos/user/1"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$[0].title").value("Test Todo"));
@@ -135,7 +135,7 @@ public class TodoControllerTest {
         when(todoService.findByUserAndCompleted(testUser, true))
                 .thenReturn(Arrays.asList(testTodo));
 
-        mockMvc.perform(get("/api/todos/user/1/completed/true"))
+        mockMvc.perform(get("/api/v1/todos/user/1/completed/true"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$[0].title").value("Test Todo"));
@@ -146,7 +146,7 @@ public class TodoControllerTest {
         testTodo.setCompleted(true);
         when(todoService.markAsCompleted(1L)).thenReturn(testTodo);
 
-        mockMvc.perform(put("/api/todos/1/complete"))
+        mockMvc.perform(put("/api/v1/todos/1/complete"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.completed").value(true));
     }
@@ -156,7 +156,7 @@ public class TodoControllerTest {
         testTodo.setDeletedAt(Instant.now());
         when(todoService.softDelete(1L)).thenReturn(testTodo);
 
-        mockMvc.perform(delete("/api/todos/1/soft"))
+        mockMvc.perform(delete("/api/v1/todos/1/soft"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.deletedAt").isNotEmpty());
     }

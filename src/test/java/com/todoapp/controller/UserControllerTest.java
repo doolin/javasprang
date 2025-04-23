@@ -63,7 +63,7 @@ class UserControllerTest {
     void whenGetAllUsers_thenReturnJsonArray() throws Exception {
         given(userService.findAll()).willReturn(Arrays.asList(testUser));
 
-        mockMvc.perform(get("/api/users"))
+        mockMvc.perform(get("/api/v1/users"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$[0].id", is(1)))
@@ -76,7 +76,7 @@ class UserControllerTest {
     void whenGetUserById_thenReturnJson() throws Exception {
         given(userService.findById(1L)).willReturn(testUser);
 
-        mockMvc.perform(get("/api/users/1"))
+        mockMvc.perform(get("/api/v1/users/1"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.id", is(1)))
@@ -89,7 +89,7 @@ class UserControllerTest {
     void whenCreateUser_thenReturnJsonUser() throws Exception {
         given(userService.save(any(User.class))).willReturn(testUser);
 
-        mockMvc.perform(post("/api/users")
+        mockMvc.perform(post("/api/v1/users")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(testUser)))
                 .andExpect(status().isCreated())
@@ -105,7 +105,7 @@ class UserControllerTest {
         given(userService.findById(1L)).willReturn(testUser);
         given(userService.save(any(User.class))).willReturn(testUser);
 
-        mockMvc.perform(put("/api/users/1")
+        mockMvc.perform(put("/api/v1/users/1")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(objectMapper.writeValueAsString(testUser)))
                 .andExpect(status().isOk())
@@ -120,7 +120,7 @@ class UserControllerTest {
     void whenDeleteUser_thenReturn200() throws Exception {
         doNothing().when(userService).deleteById(1L);
 
-        mockMvc.perform(delete("/api/users/1"))
+        mockMvc.perform(delete("/api/v1/users/1"))
                 .andExpect(status().isOk());
     }
 
@@ -128,7 +128,7 @@ class UserControllerTest {
     void whenFindByUsername_thenReturnJson() throws Exception {
         given(userService.findByUsername("testuser")).willReturn(Optional.of(testUser));
 
-        mockMvc.perform(get("/api/users/username/testuser"))
+        mockMvc.perform(get("/api/v1/users/username/testuser"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.id", is(1)))
@@ -141,7 +141,7 @@ class UserControllerTest {
     void whenFindByEmail_thenReturnJson() throws Exception {
         given(userService.findByEmail("test@example.com")).willReturn(Optional.of(testUser));
 
-        mockMvc.perform(get("/api/users/email/test@example.com"))
+        mockMvc.perform(get("/api/v1/users/email/test@example.com"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.id", is(1)))
@@ -154,7 +154,7 @@ class UserControllerTest {
     void whenSoftDelete_thenReturnJsonUser() throws Exception {
         given(userService.softDelete(1L)).willReturn(testUser);
 
-        mockMvc.perform(delete("/api/users/1/soft"))
+        mockMvc.perform(delete("/api/v1/users/1/soft"))
                 .andExpect(status().isOk())
                 .andExpect(content().contentType(MediaType.APPLICATION_JSON))
                 .andExpect(jsonPath("$.id", is(1)))

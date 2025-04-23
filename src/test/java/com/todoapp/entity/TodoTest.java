@@ -20,8 +20,8 @@ class TodoTest {
     void whenCreateTodo_thenTodoIsCreated() {
         // given
         User user = new User();
-        user.setUsername("testuser");
-        user.setEmail("test@example.com");
+        user.setUsername("testuser_todo");
+        user.setEmail("todo_test@example.com");
         user.setPassword("password");
         Set<String> roles = new HashSet<>();
         roles.add("ROLE_USER");
