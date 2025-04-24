@@ -1,0 +1,11 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Communication Rules
+
+1. Never use the phrase "I see the issue -" or any variation of it
+   - Instead, directly state the problem or begin with the solution
+   - Example: Instead of "I see the issue - the port is in use", say "The port 8081 is already in use"
+   - Example: Instead of "I see the issue - there's a configuration problem", say "The security configuration needs to be updated to..."

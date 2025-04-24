@@ -26,8 +26,8 @@ class TodoRepositoryTest {
     void whenFindByUser_thenReturnTodos() {
         // given
         User user = new User();
-        user.setUsername("testuser");
-        user.setEmail("test@example.com");
+        user.setUsername("testuser_repo1");
+        user.setEmail("todo_repo1@example.com");
         user.setPassword("password");
         Set<String> roles = new HashSet<>();
         roles.add("ROLE_USER");
@@ -63,8 +63,8 @@ class TodoRepositoryTest {
     void whenFindByUserAndCompleted_thenReturnCompletedTodos() {
         // given
         User user = new User();
-        user.setUsername("testuser");
-        user.setEmail("test@example.com");
+        user.setUsername("testuser_repo2");
+        user.setEmail("todo_repo2@example.com");
         user.setPassword("password");
         Set<String> roles = new HashSet<>();
         roles.add("ROLE_USER");

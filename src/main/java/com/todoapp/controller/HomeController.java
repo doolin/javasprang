@@ -1,13 +1,13 @@
 package com.todoapp.controller;
 
+import org.springframework.stereotype.Controller;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
 
-@RestController
+@Controller
 public class HomeController {
 
-    @GetMapping("/")
+    @GetMapping(value = {"/api/v1/", "/api/v1/{*path}"})
     public String home() {
-        return "Welcome to Todo App API";
+        return "forward:/index.html";
     }
 } 

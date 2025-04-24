@@ -20,8 +20,8 @@ class UserTest {
     void whenCreateUser_thenUserIsCreated() {
         // given
         User user = new User();
-        user.setUsername("testuser");
-        user.setEmail("test@example.com");
+        user.setUsername("testuser_user");
+        user.setEmail("user_test@example.com");
         user.setPassword("password");
         Set<String> roles = new HashSet<>();
         roles.add("ROLE_USER");
@@ -34,8 +34,8 @@ class UserTest {
         // then
         User foundUser = entityManager.find(User.class, savedUser.getId());
         assertThat(foundUser).isNotNull();
-        assertThat(foundUser.getUsername()).isEqualTo("testuser");
-        assertThat(foundUser.getEmail()).isEqualTo("test@example.com");
+        assertThat(foundUser.getUsername()).isEqualTo("testuser_user");
+        assertThat(foundUser.getEmail()).isEqualTo("user_test@example.com");
         assertThat(foundUser.getRoles()).contains("ROLE_USER");
     }
 } 

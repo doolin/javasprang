@@ -1,0 +1,11 @@
+{
+  "rules": [
+    {
+      "name": "No Git Commands",
+      "description": "Never use git commands to add, commit, or push changes",
+      "pattern": "git (add|commit|push|rm|mv|branch|checkout|merge|pull|fetch|tag|stash)",
+      "severity": "error",
+      "message": "Do not use git commands. Let the user handle all git operations."
+    }
+  ]
+} 
