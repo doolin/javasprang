@@ -1,0 +1,17 @@
+services:
+  postgres:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: todoapp-postgres
+    ports:
+      - "5442:5432"
+    environment:
+      POSTGRES_DB: todoapp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - todoapp-postgres-data:/var/lib/postgresql/data
+
+volumes:
+  todoapp-postgres-data:
