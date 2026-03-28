@@ -9,6 +9,7 @@ import { Component } from '@angular/core';
         <div class="navbar-nav ms-auto">
           <a class="nav-link" routerLink="/login" routerLinkActive="active">Login</a>
           <a class="nav-link" routerLink="/register" routerLinkActive="active">Register</a>
+            <a class="nav-link" routerLink="/" routerLinkActive="active" [routerLinkActiveOptions]="{ exact: true }">Home</a>
         </div>
       </div>
     </nav>

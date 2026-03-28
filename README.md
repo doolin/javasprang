@@ -18,6 +18,44 @@ A Spring Boot application for managing todo items with user authentication.
 ./mvnw spring-boot:run
 ```
 
+## Local Database (Docker, Port 5442)
+
+The application datasource is configured for PostgreSQL on `localhost:5442`.
+
+```bash
+# Build and start the project Postgres container
+docker compose -f docker/postgres/compose.yaml up -d --build
+
+# Verify container status
+docker compose -f docker/postgres/compose.yaml ps
+```
+
+To stop it:
+
+```bash
+docker compose -f docker/postgres/compose.yaml down
+```
+
+## Synthetic Seed Data
+
+Use the provisioning script to insert synthetic users and todos:
+
+```bash
+./scripts/provision_synthetic_data.sh
+```
+
+Reset synthetic rows and re-seed:
+
+```bash
+./scripts/provision_synthetic_data.sh --reset
+```
+
+Default seed users (password: `password123`):
+
+- `synth_alice`
+- `synth_bob`
+- `synth_carol`
+
 ## Testing
 
 ```bash
