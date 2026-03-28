@@ -1,4 +1,11 @@
 {
   "java.compile.nullAnalysis.mode": "automatic",
-  "java.configuration.updateBuildConfiguration": "automatic"
+  "java.configuration.updateBuildConfiguration": "automatic",
+  "chat.tools.terminal.autoApprove": {
+    "git rev-parse": true,
+    "git remote": true,
+    "git rev-list": true,
+    "./mvnw": true,
+    "npm test": true
+  }
 }

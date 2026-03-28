@@ -25,6 +25,74 @@ A Spring Boot application for managing todo items with user authentication.
 ./mvnw test
 ```
 
+## Current Findings (March 2026)
+
+Recent verification runs found two important test-suite issues:
+
+1. Backend tests are not fully hermetic.
+- Running `./mvnw test` currently fails in JPA tests when a local PostgreSQL database named `todoapp` is unavailable.
+- Several tests expect H2 test behavior but are resolving to the PostgreSQL datasource at runtime.
+
+2. Frontend auth service tests are out of sync with implementation.
+- `AuthService` calls `/api/v1/auth/...` endpoints.
+- `auth.service.spec.ts` expects `/api/auth/...`, causing request matcher failures and cascading async test errors.
+
+These findings indicate that the repository builds, but does not currently provide reliable out-of-the-box green tests.
+
+## Stabilization Plan
+
+### Phase 1: Restore deterministic tests
+
+Goal: Make `./mvnw test` and frontend unit tests pass on a clean machine without local PostgreSQL requirements.
+
+1. Backend profile and datasource alignment.
+- Ensure test execution always activates a test profile (`test`) or explicit datasource override.
+- Confirm `@DataJpaTest` classes bind to H2/test configuration consistently.
+- Remove or scope any properties that force external DB usage during tests.
+
+2. Frontend auth test alignment.
+- Update auth service test URL expectations to `/api/v1/auth/login` and `/api/v1/auth/register`.
+- Adjust observable assertions to account for initial `BehaviorSubject` emission (`null`) before success emission.
+
+Acceptance criteria:
+- `./mvnw test` exits successfully.
+- `npm test -- --watch=false --browsers=ChromeHeadless` exits successfully from `src/main/frontend`.
+
+### Phase 2: Guardrails against regressions
+
+Goal: Prevent endpoint and config drift from silently breaking CI.
+
+1. Introduce shared constants for API base path in frontend service/tests.
+2. Add a simple CI job that runs backend and frontend tests on every PR.
+3. Keep generated artifacts and local outputs out of commits (already mostly addressed via `.gitignore`).
+
+Acceptance criteria:
+- PR checks fail fast on backend or frontend test regressions.
+- Endpoint path changes require updates in one place.
+
+### Phase 3: Security and configuration hardening
+
+Goal: Improve production readiness after test stability is restored.
+
+1. Replace development JWT secret defaults with environment-based configuration.
+2. Review dual Spring Security filter chains and simplify matchers where possible.
+3. Add/update docs for required runtime env vars and local setup.
+
+Acceptance criteria:
+- No hardcoded sensitive defaults in production configuration.
+- Security rules are documented and easier to reason about.
+
+## Suggested Local Verification Workflow
+
+```bash
+# backend
+./mvnw test
+
+# frontend
+cd src/main/frontend
+npm test -- --watch=false --browsers=ChromeHeadless
+```
+
 ## Handling Large Files
 
 This repository is configured to prevent large files from being committed. The following files and directories are ignored:
