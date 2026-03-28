@@ -75,7 +75,7 @@ describe('RegisterComponent', () => {
       email: 'test@example.com',
       password: 'password123'
     };
-    authService.register.and.returnValue(of({ token: 'test-token', user: { id: 1, username: testUser.username, email: testUser.email } }));
+    authService.register.and.returnValue(of({ token: 'test-token', username: testUser.username, email: testUser.email }));
     
     component.registerForm.controls['username'].setValue(testUser.username);
     component.registerForm.controls['email'].setValue(testUser.email);

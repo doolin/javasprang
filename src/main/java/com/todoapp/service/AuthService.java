@@ -4,6 +4,8 @@ import com.todoapp.dto.AuthRequest;
 import com.todoapp.dto.AuthResponse;
 import com.todoapp.dto.RegisterRequest;
 import com.todoapp.entity.User;
+import com.todoapp.exception.InvalidCredentialsException;
+import com.todoapp.exception.ResourceConflictException;
 import com.todoapp.security.UserDetailsImpl;
 import com.todoapp.util.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -50,19 +52,19 @@ public class AuthService {
                 userDetails.getUser().getEmail()
             );
         } catch (AuthenticationException e) {
-            throw new RuntimeException("Invalid username or password");
+            throw new InvalidCredentialsException("Invalid username or password");
         }
     }
 
     public AuthResponse register(RegisterRequest request) {
         // Check if username already exists
         if (userService.findByUsername(request.getUsername()).isPresent()) {
-            throw new RuntimeException("Username already exists");
+            throw new ResourceConflictException("Username already exists");
         }
 
         // Check if email already exists
         if (userService.findByEmail(request.getEmail()).isPresent()) {
-            throw new RuntimeException("Email already exists");
+            throw new ResourceConflictException("Email already exists");
         }
 
         // Create new user

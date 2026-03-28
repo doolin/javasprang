@@ -55,7 +55,7 @@ describe('LoginComponent', () => {
 
   it('should call authService.login on submit', () => {
     const testUser = { username: 'testuser', password: 'password' };
-    authService.login.and.returnValue(of({ token: 'test-token', user: { id: 1, username: 'testuser', email: 'test@example.com' } }));
+    authService.login.and.returnValue(of({ token: 'test-token', username: 'testuser', email: 'test@example.com' }));
     
     component.loginForm.controls['username'].setValue(testUser.username);
     component.loginForm.controls['password'].setValue(testUser.password);

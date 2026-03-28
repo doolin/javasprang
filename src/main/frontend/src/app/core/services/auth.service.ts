@@ -4,14 +4,15 @@ import { Observable, BehaviorSubject } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
 export interface User {
-  id: number;
+  id?: number;
   username: string;
   email: string;
 }
 
 export interface AuthResponse {
   token: string;
-  user: User;
+  username: string;
+  email: string;
 }
 
 @Injectable({
@@ -23,18 +24,26 @@ export class AuthService {
 
   constructor(private http: HttpClient) {
     const user = localStorage.getItem('currentUser');
-    if (user) {
+    if (user && user !== 'undefined') {
       this.currentUserSubject.next(JSON.parse(user));
     }
+  }
+
+  private toUser(response: AuthResponse): User {
+    return {
+      username: response.username,
+      email: response.email
+    };
   }
 
   login(username: string, password: string): Observable<AuthResponse> {
     return this.http.post<AuthResponse>('/api/v1/auth/login', { username, password })
       .pipe(
         tap(response => {
+          const user = this.toUser(response);
           localStorage.setItem('token', response.token);
-          localStorage.setItem('currentUser', JSON.stringify(response.user));
-          this.currentUserSubject.next(response.user);
+          localStorage.setItem('currentUser', JSON.stringify(user));
+          this.currentUserSubject.next(user);
         })
       );
   }
@@ -43,9 +52,10 @@ export class AuthService {
     return this.http.post<AuthResponse>('/api/v1/auth/register', { username, email, password })
       .pipe(
         tap(response => {
+          const user = this.toUser(response);
           localStorage.setItem('token', response.token);
-          localStorage.setItem('currentUser', JSON.stringify(response.user));
-          this.currentUserSubject.next(response.user);
+          localStorage.setItem('currentUser', JSON.stringify(user));
+          this.currentUserSubject.next(user);
         })
       );
   }

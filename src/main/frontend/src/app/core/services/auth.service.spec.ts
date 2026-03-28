@@ -1,11 +1,12 @@
 import { TestBed } from '@angular/core/testing';
 import { HttpClientTestingModule, HttpTestingController } from '@angular/common/http/testing';
 import { AuthService } from './auth.service';
+import { skip, take } from 'rxjs/operators';
 
 describe('AuthService', () => {
   let service: AuthService;
   let httpMock: HttpTestingController;
-  const apiUrl = '/api/auth';
+  const apiUrl = '/api/v1/auth';
 
   beforeEach(() => {
     TestBed.configureTestingModule({
@@ -34,11 +35,8 @@ describe('AuthService', () => {
 
     const mockResponse = {
       token: 'test-token',
-      user: {
-        id: 1,
-        username: 'testuser',
-        email: 'test@example.com'
-      }
+      username: 'testuser',
+      email: 'test@example.com'
     };
 
     it('should make POST request to login endpoint', () => {
@@ -57,13 +55,21 @@ describe('AuthService', () => {
       req.flush(mockResponse);
 
       expect(localStorage.getItem('token')).toBe(mockResponse.token);
-      expect(localStorage.getItem('currentUser')).toBe(JSON.stringify(mockResponse.user));
+      expect(localStorage.getItem('currentUser')).toBe(JSON.stringify({
+        username: mockResponse.username,
+        email: mockResponse.email
+      }));
     });
 
     it('should update currentUser$ observable on successful login', (done) => {
       service.currentUser$.subscribe(user => {
-        expect(user).toEqual(mockResponse.user);
-        done();
+        if (user) {
+          expect(user).toEqual({
+            username: mockResponse.username,
+            email: mockResponse.email
+          });
+          done();
+        }
       });
 
       service.login(loginData.username, loginData.password).subscribe();
@@ -82,11 +88,8 @@ describe('AuthService', () => {
 
     const mockResponse = {
       token: 'test-token',
-      user: {
-        id: 1,
-        username: registerData.username,
-        email: registerData.email
-      }
+      username: registerData.username,
+      email: registerData.email
     };
 
     it('should make POST request to register endpoint', () => {
@@ -105,13 +108,21 @@ describe('AuthService', () => {
       req.flush(mockResponse);
 
       expect(localStorage.getItem('token')).toBe(mockResponse.token);
-      expect(localStorage.getItem('currentUser')).toBe(JSON.stringify(mockResponse.user));
+      expect(localStorage.getItem('currentUser')).toBe(JSON.stringify({
+        username: mockResponse.username,
+        email: mockResponse.email
+      }));
     });
 
     it('should update currentUser$ observable on successful registration', (done) => {
       service.currentUser$.subscribe(user => {
-        expect(user).toEqual(mockResponse.user);
-        done();
+        if (user) {
+          expect(user).toEqual({
+            username: mockResponse.username,
+            email: mockResponse.email
+          });
+          done();
+        }
       });
 
       service.register(registerData.username, registerData.email, registerData.password).subscribe();
@@ -133,7 +144,7 @@ describe('AuthService', () => {
     });
 
     it('should update currentUser$ observable to null', (done) => {
-      service.currentUser$.subscribe(user => {
+      service.currentUser$.pipe(skip(1), take(1)).subscribe(user => {
         expect(user).toBeNull();
         done();
       });
