@@ -6,6 +6,7 @@
     "git remote": true,
     "git rev-list": true,
     "./mvnw": true,
-    "npm test": true
+    "npm test": true,
+    "java": true
   }
 }

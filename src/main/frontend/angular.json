@@ -72,14 +72,12 @@
               "browserTarget": "todo-app-frontend:build:development"
             }
           },
-          "defaultConfiguration": "development",
-          "options": {
-            "baseHref": "/"
-          }
+          "defaultConfiguration": "development"
         },
         "test": {
           "builder": "@angular-devkit/build-angular:karma",
           "options": {
+            "karmaConfig": "karma.conf.js",
             "polyfills": [
               "zone.js",
               "zone.js/testing"

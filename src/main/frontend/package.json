@@ -7,7 +7,11 @@
     "build": "ng build --configuration production",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "test:coverage": "ng test --configuration ci"
+    "test:coverage": "ng test --configuration ci",
+    "test:e2e": "start-server-and-test \"npm run start -- --port 4201 --host 127.0.0.1\" http://127.0.0.1:4201/login \"playwright test\"",
+    "test:e2e:coverage": "start-server-and-test \"npm run start -- --port 4201 --host 127.0.0.1\" http://127.0.0.1:4201/login \"PLAYWRIGHT_JSON_OUTPUT_NAME=results.json PLAYWRIGHT_JSON_OUTPUT_DIR=coverage/playwright playwright test --reporter=list,json\"",
+    "coverage:combined": "node scripts/generate-combined-coverage.mjs",
+    "test:coverage:all": "npm run test:coverage && npm run test:e2e:coverage && npm run coverage:combined"
   },
   "private": true,
   "dependencies": {
@@ -28,6 +32,7 @@
     "@angular-devkit/build-angular": "^17.2.0",
     "@angular/cli": "^17.2.0",
     "@angular/compiler-cli": "^17.2.0",
+    "@playwright/test": "^1.58.2",
     "@types/jasmine": "~5.1.0",
     "jasmine-core": "~5.1.0",
     "karma": "~6.4.0",
@@ -35,6 +40,7 @@
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
+    "start-server-and-test": "^2.1.5",
     "typescript": "~5.3.2"
   }
 }

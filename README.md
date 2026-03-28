@@ -147,7 +147,15 @@ npm test -- --watch=false --browsers=ChromeHeadless
 
 # frontend coverage
 npm run test:coverage
+
+# frontend e2e coverage + combined summary
+npm run test:coverage:all
 ```
+
+Combined coverage outputs are written to:
+
+- `src/main/frontend/coverage/combined/summary.json`
+- `src/main/frontend/coverage/combined/summary.md`
 
 ## Handling Large Files
 
