@@ -144,6 +144,9 @@ Acceptance criteria:
 # frontend
 cd src/main/frontend
 npm test -- --watch=false --browsers=ChromeHeadless
+
+# frontend coverage
+npm run test:coverage
 ```
 
 ## Handling Large Files
