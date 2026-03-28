@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     container_name: todoapp-postgres
     ports:
-      - "5442:5432"
+      - "55432:5432"
     environment:
       POSTGRES_DB: todoapp
       POSTGRES_USER: postgres

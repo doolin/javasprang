@@ -18,9 +18,17 @@ A Spring Boot application for managing todo items with user authentication.
 ./mvnw spring-boot:run
 ```
 
-## Local Database (Docker, Port 5442)
+After signing in, the root route (`/`) shows a Kanban board with three columns:
 
-The application datasource is configured for PostgreSQL on `localhost:5442`.
+- `To Do`
+- `In Progress`
+- `Done`
+
+Cards can be created, moved between columns, and deleted.
+
+## Local Database (Docker, Port 55432)
+
+The application datasource is configured for PostgreSQL on `localhost:55432`.
 
 ```bash
 # Build and start the project Postgres container
@@ -49,6 +57,13 @@ Reset synthetic rows and re-seed:
 ```bash
 ./scripts/provision_synthetic_data.sh --reset
 ```
+
+The provisioning now uses PostgreSQL `MERGE` statements for idempotent upserts
+instead of insert-if-missing stopgaps.
+
+Note: this is still an interim approach. A proper migration/seed strategy (for
+example Flyway/Liquibase with versioned data fixtures) should replace this in a
+future hardening pass.
 
 Default seed users (password: `password123`):
 

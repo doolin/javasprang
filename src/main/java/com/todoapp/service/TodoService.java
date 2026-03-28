@@ -1,6 +1,7 @@
 package com.todoapp.service;
 
 import com.todoapp.entity.Todo;
+import com.todoapp.entity.TodoStatus;
 import com.todoapp.entity.User;
 import com.todoapp.repository.TodoRepository;
 import com.todoapp.repository.UserRepository;
@@ -31,6 +32,10 @@ public class TodoService {
     }
 
     public Todo save(Todo todo) {
+        if (todo.getStatus() == null) {
+            todo.setStatus(todo.isCompleted() ? TodoStatus.DONE : TodoStatus.TODO);
+        }
+        todo.setCompleted(todo.getStatus() == TodoStatus.DONE);
         return todoRepository.save(todo);
     }
 
@@ -60,6 +65,7 @@ public class TodoService {
 
     public Todo markAsCompleted(Long id) {
         Todo todo = findById(id);
+        todo.setStatus(TodoStatus.DONE);
         todo.setCompleted(true);
         return todoRepository.save(todo);
     }

@@ -24,6 +24,10 @@ public class Todo extends BaseEntity {
     @Size(max = 500)
     private String description;
 
+    @Enumerated(EnumType.STRING)
+    @Column
+    private TodoStatus status = TodoStatus.TODO;
+
     private boolean completed = false;
 
     @ManyToOne(fetch = FetchType.LAZY)

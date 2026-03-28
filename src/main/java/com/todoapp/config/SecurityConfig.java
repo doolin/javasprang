@@ -37,6 +37,8 @@ public class SecurityConfig {
             .csrf(csrf -> csrf.disable())
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers(new AntPathRequestMatcher("/api/v1/auth/**")).permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/api/v1/todos/**")).permitAll()
+                .requestMatchers(new AntPathRequestMatcher("/api/v1/users/username/**")).permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session
@@ -64,6 +66,8 @@ public class SecurityConfig {
                     new AntPathRequestMatcher("/*.png"),
                     new AntPathRequestMatcher("/*.svg"),
                     new AntPathRequestMatcher("/api/v1/auth/**"),
+                    new AntPathRequestMatcher("/api/v1/todos/**"),
+                    new AntPathRequestMatcher("/api/v1/users/username/**"),
                     new AntPathRequestMatcher("/register"),
                     new AntPathRequestMatcher("/login"),
                     new AntPathRequestMatcher("/todos"),
