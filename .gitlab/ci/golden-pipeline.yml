@@ -1,0 +1,221 @@
+# Reusable compliance pipeline (NIST SSDF / EO 14028 / M-22-18 / M-24-15).
+# Source-of-truth skill: doolin/dave-skills skills/cicd-golden-pipeline/SKILL.md
+# GitLab CI mirror of .github/workflows/golden-pipeline.yml.
+#
+# STUB STATUS: jobs are defined against public Docker images. They
+# should run on any GitLab runner with the `docker` executor. Items
+# marked TODO-STUB need GitLab account / variable / runner setup.
+
+# ---------------------------------------------------------------------
+# Shared anchors
+# ---------------------------------------------------------------------
+
+.default-rules: &default-rules
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
+    - if: '$CI_COMMIT_BRANCH && $CI_PIPELINE_SOURCE == "push"'
+
+.artifacts-defaults: &artifacts-defaults
+  expire_in: 90 days
+  when: always
+
+# ---------------------------------------------------------------------
+# 1. Secrets Scan (PW.6)
+# ---------------------------------------------------------------------
+secrets-scan:
+  stage: compliance-check
+  image: zricethezav/gitleaks:latest
+  <<: *default-rules
+  variables:
+    GIT_DEPTH: "0"           # full history scan
+  script:
+    - gitleaks detect --source=. --no-banner --verbose --report-path=gitleaks-report.json --report-format=json || true
+    - gitleaks detect --source=. --no-banner --verbose
+    - |
+      echo "{\"event\":\"secrets_scan\",\"severity\":\"info\",\"stage\":\"PW.6\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+  artifacts:
+    <<: *artifacts-defaults
+    name: "gitleaks-report-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - gitleaks-report.json
+
+# ---------------------------------------------------------------------
+# 2. Test (backend + frontend)
+# ---------------------------------------------------------------------
+test:
+  stage: compliance-check
+  image: eclipse-temurin:17-jdk
+  <<: *default-rules
+  variables:
+    # Hermetic H2 tests via the project's `test` profile. Must NOT set
+    # SPRING_DATASOURCE_* here — env vars would override H2 config.
+    SPRING_PROFILES_ACTIVE: test
+  cache:
+    key: maven-$CI_COMMIT_REF_SLUG
+    paths:
+      - .m2/repository
+      - $FRONTEND_DIR/node_modules
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq curl
+    # Install Node alongside Java so the frontend-maven-plugin doesn't
+    # need to download its own each run. Version matches JAVA+NODE
+    # combo used on the GitHub pipeline.
+    - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    - apt-get install -y -qq nodejs
+    - node --version && npm --version
+  script:
+    - ./mvnw $MAVEN_CLI_OPTS verify
+    - cd $FRONTEND_DIR && npm ci
+    # TODO-STUB: Karma tests need a headless browser. GitLab runners
+    # typically don't include one — provision via `apt-get install
+    # chromium` (extends before_script) OR switch image to one with
+    # Chrome (e.g. cypress/browsers). Short-term, unit tests pass on
+    # GitHub Actions where Chrome is preinstalled.
+    - npm test -- --watch=false --browsers=ChromeHeadlessCI --code-coverage || { echo "TODO-STUB: install headless Chrome on runner"; exit 1; }
+    - |
+      echo "{\"event\":\"test\",\"severity\":\"info\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+  artifacts:
+    <<: *artifacts-defaults
+    name: "test-reports-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - target/surefire-reports/
+      - target/site/jacoco/
+      - $FRONTEND_DIR/coverage/
+    reports:
+      junit:
+        - target/surefire-reports/TEST-*.xml
+
+# ---------------------------------------------------------------------
+# 3. Vulnerability Scan (PW.7 / PW.8)
+# ---------------------------------------------------------------------
+vulnerability-scan:
+  stage: compliance-check
+  image: aquasec/trivy:latest
+  <<: *default-rules
+  variables:
+    TRIVY_NO_PROGRESS: "true"
+  before_script:
+    - apk add --no-cache nodejs npm jq curl bash
+  script:
+    # npm audit — production deps only
+    - cd $FRONTEND_DIR
+    - npm ci --omit=dev
+    - npm audit --audit-level=$NPM_AUDIT_LEVEL --omit=dev --json > npm-audit.json
+    - npm audit --audit-level=$NPM_AUDIT_LEVEL --omit=dev
+    - cd "$CI_PROJECT_DIR"
+    # Trivy — fs scan. JSON evidence first (always captured), then
+    # summary, then the gating table run. Uses the same .trivyignore
+    # the GitHub pipeline uses so the ignore list stays authoritative.
+    - trivy fs --format json --output trivy-results.json --severity $TRIVY_SEVERITY --ignore-unfixed --ignorefile .trivyignore --exit-code 0 .
+    - |
+      count=$(jq '[.Results[]?.Vulnerabilities[]?] | length' trivy-results.json 2>/dev/null || echo 0)
+      echo "Trivy findings at severity=$TRIVY_SEVERITY (fixed-only, ignore-unfixed, .trivyignore applied): $count"
+      if [ "$count" -gt 0 ]; then
+        jq -r '[.Results[]?.Vulnerabilities[]?] | unique_by(.VulnerabilityID + .PkgName) | .[] | "\(.VulnerabilityID)\t\(.Severity)\t\(.PkgName)\t\(.InstalledVersion)\t\(.FixedVersion // "-")"' trivy-results.json
+      fi
+    - trivy fs --format table --severity $TRIVY_SEVERITY --ignore-unfixed --ignorefile .trivyignore --exit-code 1 .
+    - |
+      echo "{\"event\":\"vulnerability_scan\",\"severity\":\"info\",\"stage\":\"PW.7_PW.8\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+  artifacts:
+    <<: *artifacts-defaults
+    name: "vuln-scan-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - $FRONTEND_DIR/npm-audit.json
+      - trivy-results.json
+
+# ---------------------------------------------------------------------
+# 4. SBOM (PW.4)
+# ---------------------------------------------------------------------
+sbom:
+  stage: compliance-sbom
+  image: eclipse-temurin:17-jdk
+  <<: *default-rules
+  needs:
+    - job: test
+      artifacts: false
+  cache:
+    key: maven-$CI_COMMIT_REF_SLUG
+    paths:
+      - .m2/repository
+  before_script:
+    - apt-get update -qq && apt-get install -y -qq curl
+    - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    - apt-get install -y -qq nodejs
+    # Install syft (SBOM tool that powers anchore/sbom-action on GitHub)
+    - curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
+  script:
+    - ./mvnw $MAVEN_CLI_OPTS dependency:resolve -DincludeScope=runtime
+    - cd $FRONTEND_DIR && npm ci --omit=dev && cd "$CI_PROJECT_DIR"
+    - syft . -o cyclonedx-json=sbom.cyclonedx.json
+    - |
+      echo "{\"event\":\"sbom\",\"severity\":\"info\",\"stage\":\"PW.4\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+  artifacts:
+    <<: *artifacts-defaults
+    name: "sbom-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - sbom.cyclonedx.json
+
+# ---------------------------------------------------------------------
+# 5. OSCAL (M-24-15)
+# ---------------------------------------------------------------------
+oscal:
+  stage: compliance-oscal
+  image: node:20-alpine
+  <<: *default-rules
+  needs:
+    - job: vulnerability-scan
+      artifacts: true
+  before_script:
+    # Normalize evidence layout to match the generate-oscal.js
+    # expectation (flat directory; script looks for *.json by name).
+    - mkdir -p evidence
+    - cp trivy-results.json evidence/ 2>/dev/null || true
+    - cp "$FRONTEND_DIR/npm-audit.json" evidence/ 2>/dev/null || true
+  script:
+    - |
+      COMMIT_SHA="$CI_COMMIT_SHA" \
+      RUN_ID="$CI_PIPELINE_ID" \
+      REPO="$CI_PROJECT_PATH" \
+      node scripts/generate-oscal.js evidence/ oscal/
+    - |
+      echo "{\"event\":\"oscal\",\"severity\":\"info\",\"stage\":\"M-24-15\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+  artifacts:
+    <<: *artifacts-defaults
+    name: "oscal-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - oscal/
+
+# ---------------------------------------------------------------------
+# 6. Verify Evidence
+# ---------------------------------------------------------------------
+verify-evidence:
+  stage: compliance-verify
+  image: node:20-alpine
+  <<: *default-rules
+  needs:
+    - job: vulnerability-scan
+      artifacts: true
+    - job: sbom
+      artifacts: true
+    - job: oscal
+      artifacts: true
+  before_script:
+    - mkdir -p evidence
+    - cp trivy-results.json evidence/ 2>/dev/null || true
+    - cp "$FRONTEND_DIR/npm-audit.json" evidence/ 2>/dev/null || true
+    - cp sbom.cyclonedx.json evidence/ 2>/dev/null || true
+    - cp -r oscal/* evidence/ 2>/dev/null || true
+  script:
+    - |
+      COMMIT_SHA="$CI_COMMIT_SHA" \
+      RUN_ID="$CI_PIPELINE_ID" \
+      REPO="$CI_PROJECT_PATH" \
+      node scripts/verify-evidence.js evidence/ evidence-manifest.json
+    - |
+      echo "{\"event\":\"verify_evidence\",\"severity\":\"info\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+  artifacts:
+    <<: *artifacts-defaults
+    name: "evidence-manifest-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - evidence-manifest.json

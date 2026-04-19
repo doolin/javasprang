@@ -1,0 +1,104 @@
+# GitLab CI — per-repo caller for the reusable Golden Pipeline.
+# Mirrors .github/workflows/ci-cd.yml.
+#
+# STATUS: STUB. No GitLab account / runners / protected variables are
+# configured yet. Every TODO-STUB comment below marks a line that will
+# need attention once infra is set up. Pipeline definition is complete;
+# once the stubs resolve it should run end-to-end.
+#
+# Required GitLab setup before this runs green:
+#   - A GitLab project at gitlab.<your-host>/<group>/javasprang
+#   - Shared runners enabled (gitlab.com) OR a self-hosted runner tagged
+#     `linux` + `docker` executor
+#   - (For SLSA provenance) Sigstore OIDC trust + $COSIGN_ENABLED=true
+#     in the project's CI/CD variables
+#   - (For evidence archival) $EVIDENCE_BUCKET + S3 credentials as
+#     masked/protected CI variables
+#
+# Compared to the GitHub version, deploy / attest stages are NOT in
+# here yet — same scope as the GitHub ci-cd.yml.
+
+stages:
+  - compliance-check       # secrets-scan, test, vuln-scan in parallel
+  - compliance-sbom        # needs test
+  - compliance-oscal       # needs vuln-scan
+  - compliance-verify      # needs vuln-scan + sbom + oscal
+  - package                # main/master only: jar + SLSA provenance
+
+variables:
+  JAVA_VERSION: "17"
+  NODE_VERSION: "20.11.1"
+  FRONTEND_DIR: "src/main/frontend"
+  # Initial baseline (matches .github/workflows/ci-cd.yml). Raise to
+  # "CRITICAL,HIGH" once the HIGH baseline is clean.
+  TRIVY_SEVERITY: "CRITICAL"
+  NPM_AUDIT_LEVEL: "high"
+  EVIDENCE_RETENTION_DAYS: "90"
+  MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
+  MAVEN_CLI_OPTS: "-B -ntp"
+  # TODO-STUB: set to "true" once Sigstore OIDC is configured on the
+  # GitLab instance (or a COSIGN_PRIVATE_KEY / COSIGN_PASSWORD pair is
+  # provisioned as masked/protected variables).
+  COSIGN_ENABLED: "false"
+
+include:
+  - local: '.gitlab/ci/golden-pipeline.yml'
+
+# ---------------------------------------------------------------------
+# Caller-specific jobs
+# ---------------------------------------------------------------------
+
+package:
+  stage: package
+  image: eclipse-temurin:17-jdk
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"'
+  needs:
+    - job: secrets-scan
+    - job: test
+    - job: vulnerability-scan
+    - job: sbom
+    - job: oscal
+    - job: verify-evidence
+  cache:
+    key: maven-$CI_COMMIT_REF_SLUG
+    paths:
+      - .m2/repository
+  before_script:
+    - mkdir -p src/main/resources/static
+    - |
+      printf '{"commit":"%s","run_id":"%s","built_at":"%s"}\n' \
+        "$CI_COMMIT_SHA" "$CI_PIPELINE_ID" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        > src/main/resources/static/version.json
+  script:
+    - ./mvnw $MAVEN_CLI_OPTS -DskipTests package
+    - jar_path=$(ls target/*.jar | grep -v -- '-plain\.jar$' | head -n1)
+    - sha256sum "$jar_path" | tee "$jar_path.sha256"
+    - echo "JAR_PATH=$jar_path" > jar.env
+    # TODO-STUB: cosign sign-blob for SLSA build provenance.
+    # Requires either:
+    #   (a) Sigstore OIDC: GitLab's $CI_JOB_JWT_V2 identity token
+    #       (COSIGN_EXPERIMENTAL=1, cosign sign-blob --oidc-issuer=...)
+    #   (b) Keyed signing: $COSIGN_PRIVATE_KEY + $COSIGN_PASSWORD in
+    #       CI/CD variables
+    # Current: skipped unless $COSIGN_ENABLED=true.
+    - |
+      if [ "$COSIGN_ENABLED" = "true" ]; then
+        echo "TODO: wire cosign sign-blob --yes \"$jar_path\""
+        exit 1
+      else
+        echo "{\"event\":\"slsa_provenance\",\"severity\":\"info\",\"status\":\"skipped-stub\",\"reason\":\"COSIGN_ENABLED=false\"}"
+      fi
+    - |
+      echo "{\"event\":\"package\",\"severity\":\"info\",\"status\":\"success\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+  artifacts:
+    name: "app-jar-$CI_COMMIT_SHORT_SHA"
+    expire_in: 90 days
+    paths:
+      - target/*.jar
+      - target/*.sha256
+      - src/main/resources/static/version.json
+
+# Future work (tracked in-skill via cross-refs):
+#   deploy: per-env Helm / k8s / Lambda — needs infra + deploy token
+#   attest: Solana on-chain memo + PDF — see solana-cicd-hash skill
