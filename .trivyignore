@@ -1,0 +1,18 @@
+# Trivy ignore list — each entry MUST include justification and a
+# remediation path. No blanket suppressions. Review quarterly.
+
+# CVE-2026-22732 — spring-security-web authorization bypass / info disclosure
+# Only fixed in Spring Security 6.5.9 or 7.0.4. Spring Boot 2.7.x is pinned
+# to Spring Security 5.7.x (no backport available). Full remediation
+# requires migrating this project to Spring Boot 3.x (Jakarta namespace).
+# Tracked as tech debt; remove this entry when that migration lands.
+CVE-2026-22732
+
+# CVE-2016-1000027 — spring-web HttpInvokerServiceExporter deserialization
+# Trivy reports "fixed in Spring Framework 6.0.0", which removed the feature
+# entirely. This application does not use HttpInvokerServiceExporter
+# (a legacy RMI/Hessian invoker that predates modern Spring REST). No
+# code path references it; Grep verification: controllers only use
+# @RestController/@RequestMapping. Actual exploitability: false positive.
+# Remove this entry after the Spring Boot 3 migration lands.
+CVE-2016-1000027

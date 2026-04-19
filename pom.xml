@@ -30,9 +30,11 @@
              a Jakarta (Spring Boot 3.x) migration.
              Each property name must match spring-boot-dependencies. -->
         <spring-framework.version>5.3.39</spring-framework.version>
+        <spring-security.version>5.7.14</spring-security.version>
         <tomcat.version>9.0.117</tomcat.version>
         <logback.version>1.2.13</logback.version>
         <snakeyaml.version>2.6</snakeyaml.version>
+        <postgresql.version>42.7.10</postgresql.version>
     </properties>
 
     <dependencies>
