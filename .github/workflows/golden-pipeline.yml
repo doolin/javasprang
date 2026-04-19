@@ -1,0 +1,325 @@
+name: Golden Pipeline
+
+# Reusable compliance pipeline (NIST SSDF / EO 14028 / M-22-18 / M-24-15).
+# Source-of-truth skill: doolin/dave-skills skills/cicd-golden-pipeline/SKILL.md
+# Adapted for a Maven + Angular + PostgreSQL project.
+
+on:
+  workflow_call:
+    inputs:
+      java-version:
+        type: string
+        default: "17"
+      java-distribution:
+        type: string
+        default: "temurin"
+      node-version:
+        type: string
+        default: "18.17.0"
+      maven-test-command:
+        type: string
+        default: "./mvnw -B -ntp verify"
+      frontend-test-command:
+        type: string
+        default: "npm test -- --watch=false --browsers=ChromeHeadless --code-coverage"
+      frontend-dir:
+        type: string
+        default: "src/main/frontend"
+      npm-audit-level:
+        type: string
+        default: "high"
+      trivy-severity:
+        type: string
+        default: "CRITICAL,HIGH"
+      postgres-version:
+        type: string
+        default: "15"
+      evidence-retention-days:
+        type: number
+        default: 90
+
+permissions:
+  contents: read
+  security-events: write
+
+jobs:
+  secrets-scan:
+    name: Secrets Scan (PW.6)
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout (full history)
+        uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+        with:
+          fetch-depth: 0
+
+      - name: Run gitleaks
+        uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2.3.9
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+
+      - name: Emit audit event
+        if: always()
+        run: |
+          echo '{"event":"secrets_scan","severity":"info","stage":"PW.6","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+
+  test:
+    name: Test (backend + frontend)
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:${{ inputs.postgres-version }}
+        env:
+          POSTGRES_DB: todoapp
+          POSTGRES_USER: todoapp
+          POSTGRES_PASSWORD: todoapp
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U todoapp"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    env:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/todoapp
+      SPRING_DATASOURCE_USERNAME: todoapp
+      SPRING_DATASOURCE_PASSWORD: todoapp
+
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Set up Java ${{ inputs.java-version }}
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: ${{ inputs.java-distribution }}
+          cache: maven
+
+      - name: Set up Node ${{ inputs.node-version }}
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+          cache-dependency-path: ${{ inputs.frontend-dir }}/package-lock.json
+
+      - name: Maven verify (backend tests + frontend build + JaCoCo)
+        run: ${{ inputs.maven-test-command }}
+
+      - name: Install frontend deps
+        working-directory: ${{ inputs.frontend-dir }}
+        run: npm ci
+
+      - name: Frontend unit tests
+        working-directory: ${{ inputs.frontend-dir }}
+        run: ${{ inputs.frontend-test-command }}
+
+      - name: Upload JaCoCo report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: jacoco-report
+          path: target/site/jacoco/
+          retention-days: ${{ inputs.evidence-retention-days }}
+          if-no-files-found: ignore
+
+      - name: Upload frontend coverage
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: frontend-coverage
+          path: ${{ inputs.frontend-dir }}/coverage/
+          retention-days: ${{ inputs.evidence-retention-days }}
+          if-no-files-found: ignore
+
+      - name: Emit audit event
+        if: always()
+        run: |
+          echo '{"event":"test","severity":"info","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+
+  vulnerability-scan:
+    name: Vulnerability Scan (PW.7 / PW.8)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Set up Node
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+          cache-dependency-path: ${{ inputs.frontend-dir }}/package-lock.json
+
+      - name: npm audit (production deps, frontend)
+        working-directory: ${{ inputs.frontend-dir }}
+        run: |
+          npm ci --omit=dev
+          npm audit --audit-level=${{ inputs.npm-audit-level }} --omit=dev --json > npm-audit.json
+          npm audit --audit-level=${{ inputs.npm-audit-level }} --omit=dev
+
+      - name: Upload npm audit evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: npm-audit
+          path: ${{ inputs.frontend-dir }}/npm-audit.json
+          retention-days: ${{ inputs.evidence-retention-days }}
+          if-no-files-found: ignore
+
+      - name: Trivy filesystem scan (human-readable)
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          severity: ${{ inputs.trivy-severity }}
+          exit-code: "1"
+          ignore-unfixed: true
+
+      - name: Trivy filesystem scan (JSON evidence)
+        if: always()
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: json
+          output: trivy-results.json
+          severity: ${{ inputs.trivy-severity }}
+          exit-code: "0"
+          ignore-unfixed: true
+
+      - name: Upload Trivy evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: trivy-results
+          path: trivy-results.json
+          retention-days: ${{ inputs.evidence-retention-days }}
+          if-no-files-found: ignore
+
+      - name: Emit audit event
+        if: always()
+        run: |
+          echo '{"event":"vulnerability_scan","severity":"info","stage":"PW.7_PW.8","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+
+  sbom:
+    name: SBOM (PW.4)
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Set up Java ${{ inputs.java-version }}
+        uses: actions/setup-java@be666c2fcd27ec809703dec50e508c2fdc7f6654 # v5.2.0
+        with:
+          java-version: ${{ inputs.java-version }}
+          distribution: ${{ inputs.java-distribution }}
+          cache: maven
+
+      - name: Resolve Maven production dependencies
+        run: ./mvnw -B -ntp dependency:resolve -DincludeScope=runtime
+
+      - name: Set up Node (production-only install for frontend SBOM)
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Install frontend production deps only
+        working-directory: ${{ inputs.frontend-dir }}
+        run: npm ci --omit=dev
+
+      - name: Generate CycloneDX SBOM (syft, repo root)
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with:
+          path: .
+          format: cyclonedx-json
+          output-file: sbom.cyclonedx.json
+          upload-artifact: false
+
+      - name: Upload SBOM evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: sbom
+          path: sbom.cyclonedx.json
+          retention-days: ${{ inputs.evidence-retention-days }}
+          if-no-files-found: error
+
+      - name: Emit audit event
+        if: always()
+        run: |
+          echo '{"event":"sbom","severity":"info","stage":"PW.4","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+
+  oscal:
+    name: OSCAL (M-24-15)
+    runs-on: ubuntu-latest
+    needs: vulnerability-scan
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Set up Node
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Download vulnerability scan evidence
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          pattern: "{npm-audit,trivy-results}"
+          merge-multiple: true
+          path: evidence/
+
+      - name: Generate OSCAL artifacts
+        env:
+          COMMIT_SHA: ${{ github.sha }}
+          RUN_ID: ${{ github.run_id }}
+          REPO: ${{ github.repository }}
+        run: node scripts/generate-oscal.js evidence/ oscal/
+
+      - name: Upload OSCAL evidence
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: oscal
+          path: oscal/
+          retention-days: ${{ inputs.evidence-retention-days }}
+          if-no-files-found: error
+
+      - name: Emit audit event
+        if: always()
+        run: |
+          echo '{"event":"oscal","severity":"info","stage":"M-24-15","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+
+  verify-evidence:
+    name: Verify Evidence
+    runs-on: ubuntu-latest
+    needs: [vulnerability-scan, sbom, oscal]
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Set up Node
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: ${{ inputs.node-version }}
+
+      - name: Download all evidence artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: evidence/
+
+      - name: Verify evidence + generate SHA-256 manifest
+        run: node scripts/verify-evidence.js evidence/ evidence-manifest.json
+
+      - name: Upload evidence manifest
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: evidence-manifest
+          path: evidence-manifest.json
+          retention-days: ${{ inputs.evidence-retention-days }}
+          if-no-files-found: error
+
+      - name: Emit audit event
+        if: always()
+        run: |
+          echo '{"event":"verify_evidence","severity":"info","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
