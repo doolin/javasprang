@@ -6,8 +6,8 @@ import { User } from '../core/services/auth.service';
 import { BackendUser, TodoItem, TodoService, TodoStatus } from '../core/services/todo.service';
 
 @Component({
-  selector: 'app-home',
-  template: `
+    selector: 'app-home',
+    template: `
     <div class="kanban-page" *ngIf="currentUser; else loggedOut">
       <div class="kanban-header">
         <div>
@@ -124,8 +124,8 @@ import { BackendUser, TodoItem, TodoService, TodoStatus } from '../core/services
       </div>
     </ng-template>
   `,
-  styles: [
-    `
+    styles: [
+        `
       .kanban-page {
         display: grid;
         gap: 1rem;
@@ -197,7 +197,8 @@ import { BackendUser, TodoItem, TodoService, TodoStatus } from '../core/services
         }
       }
     `
-  ]
+    ],
+    standalone: false
 })
 export class HomeComponent {
   currentUser: User | null = null;

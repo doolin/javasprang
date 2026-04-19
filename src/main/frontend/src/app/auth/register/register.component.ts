@@ -4,8 +4,8 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
-  selector: 'app-register',
-  template: `
+    selector: 'app-register',
+    template: `
     <div class="auth-container">
       <h2 class="text-center mb-4">Register</h2>
       <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
@@ -66,7 +66,8 @@ import { AuthService } from '../../core/services/auth.service';
         </div>
       </form>
     </div>
-  `
+  `,
+    standalone: false
 })
 export class RegisterComponent {
   registerForm: FormGroup;
