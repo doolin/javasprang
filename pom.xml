@@ -22,6 +22,17 @@
         <jwt.version>0.11.5</jwt.version>
         <testcontainers.version>1.19.3</testcontainers.version>
         <lombok.version>1.18.30</lombok.version>
+
+        <!-- CVE remediation: override Spring Boot 2.7.18 BOM-pinned
+             transitive versions with the latest patched releases in
+             their same major/minor line. Spring Boot 2.7 is OSS-EOL;
+             these overrides pull in security fixes without requiring
+             a Jakarta (Spring Boot 3.x) migration.
+             Each property name must match spring-boot-dependencies. -->
+        <spring-framework.version>5.3.39</spring-framework.version>
+        <tomcat.version>9.0.117</tomcat.version>
+        <logback.version>1.2.13</logback.version>
+        <snakeyaml.version>2.6</snakeyaml.version>
     </properties>
 
     <dependencies>
