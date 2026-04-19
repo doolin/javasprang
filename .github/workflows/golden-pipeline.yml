@@ -152,6 +152,77 @@ jobs:
         run: |
           echo '{"event":"test","severity":"info","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
 
+  e2e:
+    name: E2E (desktop + mobile viewports)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Set up Node ${{ inputs.node-version }}
+        uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
+        with:
+          node-version: ${{ inputs.node-version }}
+          cache: npm
+          cache-dependency-path: ${{ inputs.frontend-dir }}/package-lock.json
+
+      - name: Install frontend deps
+        working-directory: ${{ inputs.frontend-dir }}
+        run: npm ci
+
+      # iPhone 14 Pro emulation uses WebKit; keep Chromium for the
+      # desktop project. --with-deps installs matching OS libraries.
+      - name: Install Playwright browsers
+        working-directory: ${{ inputs.frontend-dir }}
+        run: npx playwright install --with-deps chromium webkit
+
+      - name: Run Playwright e2e (desktop + mobile projects)
+        working-directory: ${{ inputs.frontend-dir }}
+        run: npm run test:e2e
+
+      - name: Upload Playwright HTML report
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-html-report
+          path: ${{ inputs.frontend-dir }}/coverage/playwright/html-report/
+          retention-days: ${{ inputs.evidence-retention-days }}
+          if-no-files-found: ignore
+
+      - name: Upload Playwright traces / screenshots / videos
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: playwright-test-results
+          path: ${{ inputs.frontend-dir }}/test-results/
+          retention-days: ${{ inputs.evidence-retention-days }}
+          if-no-files-found: ignore
+
+      - name: Summarize e2e results in PR
+        if: always()
+        working-directory: ${{ inputs.frontend-dir }}
+        run: |
+          {
+            echo "## Playwright e2e"
+            echo
+            if [ -d coverage/playwright/html-report ]; then
+              echo "HTML report uploaded as \`playwright-html-report\` artifact."
+            fi
+            if [ -d test-results ]; then
+              fail_count=$(find test-results -maxdepth 1 -type d 2>/dev/null | grep -vc '^test-results$' || echo 0)
+              if [ "$fail_count" -gt 0 ]; then
+                echo
+                echo "**Failing test cases (screenshots + video retained):**"
+                echo
+                find test-results -maxdepth 1 -type d | grep -v '^test-results$' | sed 's|test-results/||' | sed 's/^/- /'
+              fi
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Emit audit event
+        if: always()
+        run: |
+          echo '{"event":"e2e","severity":"info","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+
   vulnerability-scan:
     name: Vulnerability Scan (PW.7 / PW.8)
     runs-on: ubuntu-latest
