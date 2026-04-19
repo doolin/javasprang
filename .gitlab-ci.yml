@@ -1,15 +1,10 @@
 # GitLab CI — per-repo caller for the reusable Golden Pipeline.
 # Mirrors .github/workflows/ci-cd.yml.
 #
-# STATUS: STUB. No GitLab account / runners / protected variables are
-# configured yet. Every TODO-STUB comment below marks a line that will
-# need attention once infra is set up. Pipeline definition is complete;
-# once the stubs resolve it should run end-to-end.
-#
-# Required GitLab setup before this runs green:
+# Required GitLab setup:
 #   - A GitLab project at gitlab.<your-host>/<group>/javasprang
-#   - Shared runners enabled (gitlab.com) OR a self-hosted runner tagged
-#     `linux` + `docker` executor
+#   - Shared runners enabled (gitlab.com) OR a self-hosted runner
+#     with the `docker` executor
 #   - (For SLSA provenance) Sigstore OIDC trust + $COSIGN_ENABLED=true
 #     in the project's CI/CD variables
 #   - (For evidence archival) $EVIDENCE_BUCKET + S3 credentials as
@@ -17,6 +12,11 @@
 #
 # Compared to the GitHub version, deploy / attest stages are NOT in
 # here yet — same scope as the GitHub ci-cd.yml.
+
+workflow:
+  rules:
+    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
+    - if: '$CI_COMMIT_BRANCH && $CI_PIPELINE_SOURCE == "push"'
 
 stages:
   - compliance-check       # secrets-scan, test, vuln-scan in parallel
@@ -36,7 +36,7 @@ variables:
   EVIDENCE_RETENTION_DAYS: "90"
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"
   MAVEN_CLI_OPTS: "-B -ntp"
-  # TODO-STUB: set to "true" once Sigstore OIDC is configured on the
+  # NOTE: set to "true" once Sigstore OIDC is configured on the
   # GitLab instance (or a COSIGN_PRIVATE_KEY / COSIGN_PASSWORD pair is
   # provisioned as masked/protected variables).
   COSIGN_ENABLED: "false"
@@ -75,13 +75,13 @@ package:
     - jar_path=$(ls target/*.jar | grep -v -- '-plain\.jar$' | head -n1)
     - sha256sum "$jar_path" | tee "$jar_path.sha256"
     - echo "JAR_PATH=$jar_path" > jar.env
-    # TODO-STUB: cosign sign-blob for SLSA build provenance.
+    # NOTE: cosign sign-blob for SLSA build provenance.
     # Requires either:
     #   (a) Sigstore OIDC: GitLab's $CI_JOB_JWT_V2 identity token
     #       (COSIGN_EXPERIMENTAL=1, cosign sign-blob --oidc-issuer=...)
     #   (b) Keyed signing: $COSIGN_PRIVATE_KEY + $COSIGN_PASSWORD in
     #       CI/CD variables
-    # Current: skipped unless $COSIGN_ENABLED=true.
+    # Skipped unless $COSIGN_ENABLED=true.
     - |
       if [ "$COSIGN_ENABLED" = "true" ]; then
         echo "TODO: wire cosign sign-blob --yes \"$jar_path\""
@@ -89,8 +89,9 @@ package:
       else
         echo "{\"event\":\"slsa_provenance\",\"severity\":\"info\",\"status\":\"skipped-stub\",\"reason\":\"COSIGN_ENABLED=false\"}"
       fi
+  after_script:
     - |
-      echo "{\"event\":\"package\",\"severity\":\"info\",\"status\":\"success\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+      echo "{\"event\":\"package\",\"severity\":\"info\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
   artifacts:
     name: "app-jar-$CI_COMMIT_SHORT_SHA"
     expire_in: 90 days

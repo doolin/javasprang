@@ -2,19 +2,18 @@
 # Source-of-truth skill: doolin/dave-skills skills/cicd-golden-pipeline/SKILL.md
 # GitLab CI mirror of .github/workflows/golden-pipeline.yml.
 #
-# STUB STATUS: jobs are defined against public Docker images. They
-# should run on any GitLab runner with the `docker` executor. Items
-# marked TODO-STUB need GitLab account / variable / runner setup.
+# Jobs are defined against public Docker images and should run on any
+# GitLab runner with the `docker` executor.
 
 # ---------------------------------------------------------------------
 # Shared anchors
 # ---------------------------------------------------------------------
 
+# With workflow:rules in the caller, all pipelines that reach this file
+# have already been filtered. These rules simply say "always run".
 .default-rules: &default-rules
   rules:
-    - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
-    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH'
-    - if: '$CI_COMMIT_BRANCH && $CI_PIPELINE_SOURCE == "push"'
+    - when: on_success
 
 .artifacts-defaults: &artifacts-defaults
   expire_in: 90 days
@@ -25,13 +24,16 @@
 # ---------------------------------------------------------------------
 secrets-scan:
   stage: compliance-check
-  image: zricethezav/gitleaks:latest
+  image:
+    name: zricethezav/gitleaks:v8.22.1
+    entrypoint: [""]
   <<: *default-rules
   variables:
     GIT_DEPTH: "0"           # full history scan
   script:
     - gitleaks detect --source=. --no-banner --verbose --report-path=gitleaks-report.json --report-format=json || true
     - gitleaks detect --source=. --no-banner --verbose
+  after_script:
     - |
       echo "{\"event\":\"secrets_scan\",\"severity\":\"info\",\"stage\":\"PW.6\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
   artifacts:
@@ -51,13 +53,17 @@ test:
     # Hermetic H2 tests via the project's `test` profile. Must NOT set
     # SPRING_DATASOURCE_* here — env vars would override H2 config.
     SPRING_PROFILES_ACTIVE: test
+    CHROME_BIN: /usr/bin/google-chrome-stable
   cache:
     key: maven-$CI_COMMIT_REF_SLUG
     paths:
       - .m2/repository
       - $FRONTEND_DIR/node_modules
   before_script:
-    - apt-get update -qq && apt-get install -y -qq curl
+    - apt-get update -qq && apt-get install -y -qq curl wget gnupg
+    - wget -q -O- https://dl.google.com/linux/linux_signing_key.pub | apt-key add -
+    - echo "deb [arch=amd64] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list
+    - apt-get update -qq && apt-get install -y -qq google-chrome-stable
     # Install Node alongside Java so the frontend-maven-plugin doesn't
     # need to download its own each run. Version matches JAVA+NODE
     # combo used on the GitHub pipeline.
@@ -67,12 +73,8 @@ test:
   script:
     - ./mvnw $MAVEN_CLI_OPTS verify
     - cd $FRONTEND_DIR && npm ci
-    # TODO-STUB: Karma tests need a headless browser. GitLab runners
-    # typically don't include one — provision via `apt-get install
-    # chromium` (extends before_script) OR switch image to one with
-    # Chrome (e.g. cypress/browsers). Short-term, unit tests pass on
-    # GitHub Actions where Chrome is preinstalled.
-    - npm test -- --watch=false --browsers=ChromeHeadlessCI --code-coverage || { echo "TODO-STUB: install headless Chrome on runner"; exit 1; }
+    - npm test -- --watch=false --browsers=ChromeHeadlessCI --code-coverage
+  after_script:
     - |
       echo "{\"event\":\"test\",\"severity\":\"info\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
   artifacts:
@@ -91,7 +93,9 @@ test:
 # ---------------------------------------------------------------------
 vulnerability-scan:
   stage: compliance-check
-  image: aquasec/trivy:latest
+  image:
+    name: aquasec/trivy:0.58.2
+    entrypoint: [""]
   <<: *default-rules
   variables:
     TRIVY_NO_PROGRESS: "true"
@@ -101,7 +105,7 @@ vulnerability-scan:
     # npm audit — production deps only
     - cd $FRONTEND_DIR
     - npm ci --omit=dev
-    - npm audit --audit-level=$NPM_AUDIT_LEVEL --omit=dev --json > npm-audit.json
+    - npm audit --audit-level=$NPM_AUDIT_LEVEL --omit=dev --json > npm-audit.json || true
     - npm audit --audit-level=$NPM_AUDIT_LEVEL --omit=dev
     - cd "$CI_PROJECT_DIR"
     # Trivy — fs scan. JSON evidence first (always captured), then
@@ -115,6 +119,7 @@ vulnerability-scan:
         jq -r '[.Results[]?.Vulnerabilities[]?] | unique_by(.VulnerabilityID + .PkgName) | .[] | "\(.VulnerabilityID)\t\(.Severity)\t\(.PkgName)\t\(.InstalledVersion)\t\(.FixedVersion // "-")"' trivy-results.json
       fi
     - trivy fs --format table --severity $TRIVY_SEVERITY --ignore-unfixed --ignorefile .trivyignore --exit-code 1 .
+  after_script:
     - |
       echo "{\"event\":\"vulnerability_scan\",\"severity\":\"info\",\"stage\":\"PW.7_PW.8\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
   artifacts:
@@ -148,6 +153,7 @@ sbom:
     - ./mvnw $MAVEN_CLI_OPTS dependency:resolve -DincludeScope=runtime
     - cd $FRONTEND_DIR && npm ci --omit=dev && cd "$CI_PROJECT_DIR"
     - syft . -o cyclonedx-json=sbom.cyclonedx.json
+  after_script:
     - |
       echo "{\"event\":\"sbom\",\"severity\":\"info\",\"stage\":\"PW.4\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
   artifacts:
@@ -178,6 +184,7 @@ oscal:
       RUN_ID="$CI_PIPELINE_ID" \
       REPO="$CI_PROJECT_PATH" \
       node scripts/generate-oscal.js evidence/ oscal/
+  after_script:
     - |
       echo "{\"event\":\"oscal\",\"severity\":\"info\",\"stage\":\"M-24-15\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
   artifacts:
@@ -212,6 +219,7 @@ verify-evidence:
       RUN_ID="$CI_PIPELINE_ID" \
       REPO="$CI_PROJECT_PATH" \
       node scripts/verify-evidence.js evidence/ evidence-manifest.json
+  after_script:
     - |
       echo "{\"event\":\"verify_evidence\",\"severity\":\"info\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
   artifacts:
