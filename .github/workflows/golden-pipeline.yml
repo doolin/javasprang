@@ -31,9 +31,6 @@ on:
       trivy-severity:
         type: string
         default: "CRITICAL,HIGH"
-      postgres-version:
-        type: string
-        default: "15"
       evidence-retention-days:
         type: number
         default: 90
@@ -66,32 +63,14 @@ jobs:
     name: Test (backend + frontend)
     runs-on: ubuntu-latest
 
-    services:
-      postgres:
-        image: postgres:${{ inputs.postgres-version }}
-        env:
-          POSTGRES_DB: todoapp
-          POSTGRES_USER: todoapp
-          POSTGRES_PASSWORD: todoapp
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U todoapp"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 10
-
     env:
-      # Force hermetic H2 tests via the project's existing `test` profile.
-      # application-test.properties is already wired for H2; this overrides
-      # the non-hermetic Postgres config in application.properties that was
-      # causing JPA tests to try localhost:55432. The postgres service below
-      # is retained for any future @SpringBootTest integration tests that
-      # explicitly opt in to the real DB.
+      # Hermetic tests via the project's existing `test` profile —
+      # application-test.properties configures in-memory H2. Env vars must
+      # NOT set SPRING_DATASOURCE_* here: those have higher property
+      # precedence than profile-loaded files and would override H2 back to
+      # Postgres. Postgres service container was removed for the same
+      # reason — it's not needed when tests run against H2.
       SPRING_PROFILES_ACTIVE: test
-      SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/todoapp
-      SPRING_DATASOURCE_USERNAME: todoapp
-      SPRING_DATASOURCE_PASSWORD: todoapp
 
     steps:
       - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
