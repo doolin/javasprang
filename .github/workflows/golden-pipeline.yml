@@ -15,7 +15,7 @@ on:
         default: "temurin"
       node-version:
         type: string
-        default: "18.17.0"
+        default: "20.11.1"
       maven-test-command:
         type: string
         default: "./mvnw -B -ntp verify"
