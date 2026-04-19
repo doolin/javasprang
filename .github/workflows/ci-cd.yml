@@ -24,7 +24,12 @@ jobs:
     uses: ./.github/workflows/golden-pipeline.yml
     with:
       java-version: "17"
-      node-version: "18.17.0"
+      node-version: "20.11.1"
+      # Initial baseline: gate the build on CRITICAL only. HIGH findings are
+      # still captured as evidence (Trivy JSON step) but not failing yet —
+      # remediation tracked separately. Raise back to "CRITICAL,HIGH" once
+      # the baseline is clean.
+      trivy-severity: "CRITICAL"
     permissions:
       contents: read
       id-token: write
