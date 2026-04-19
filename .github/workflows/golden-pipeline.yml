@@ -82,6 +82,13 @@ jobs:
           --health-retries 10
 
     env:
+      # Force hermetic H2 tests via the project's existing `test` profile.
+      # application-test.properties is already wired for H2; this overrides
+      # the non-hermetic Postgres config in application.properties that was
+      # causing JPA tests to try localhost:55432. The postgres service below
+      # is retained for any future @SpringBootTest integration tests that
+      # explicitly opt in to the real DB.
+      SPRING_PROFILES_ACTIVE: test
       SPRING_DATASOURCE_URL: jdbc:postgresql://localhost:5432/todoapp
       SPRING_DATASOURCE_USERNAME: todoapp
       SPRING_DATASOURCE_PASSWORD: todoapp
@@ -113,6 +120,35 @@ jobs:
       - name: Frontend unit tests
         working-directory: ${{ inputs.frontend-dir }}
         run: ${{ inputs.frontend-test-command }}
+
+      - name: Surefire failure summary
+        if: failure()
+        run: |
+          {
+            echo "## Surefire test failures"
+            echo
+            if ls target/surefire-reports/*.txt >/dev/null 2>&1; then
+              for f in target/surefire-reports/*.txt; do
+                if grep -qE 'FAIL|ERROR' "$f"; then
+                  echo "### $(basename "$f" .txt)"
+                  echo '```'
+                  sed -n '1,40p' "$f"
+                  echo '```'
+                fi
+              done
+            else
+              echo "_no surefire reports found_"
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload surefire reports
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: surefire-reports
+          path: target/surefire-reports/
+          retention-days: ${{ inputs.evidence-retention-days }}
+          if-no-files-found: ignore
 
       - name: Upload JaCoCo report
         if: always()
@@ -169,18 +205,10 @@ jobs:
           retention-days: ${{ inputs.evidence-retention-days }}
           if-no-files-found: ignore
 
-      - name: Trivy filesystem scan (human-readable)
-        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
-        with:
-          scan-type: fs
-          scan-ref: .
-          format: table
-          severity: ${{ inputs.trivy-severity }}
-          exit-code: "1"
-          ignore-unfixed: true
-
+      # Order: JSON evidence first (non-gating) so it's always captured,
+      # then findings go to the PR step summary (visible in the checks UI),
+      # then the gating table step fails the job with the same findings.
       - name: Trivy filesystem scan (JSON evidence)
-        if: always()
         uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
         with:
           scan-type: fs
@@ -189,6 +217,32 @@ jobs:
           output: trivy-results.json
           severity: ${{ inputs.trivy-severity }}
           exit-code: "0"
+          ignore-unfixed: true
+
+      - name: Summarize Trivy findings in PR
+        if: always()
+        run: |
+          {
+            echo "## Trivy findings (severity: ${{ inputs.trivy-severity }}, fixed-only)"
+            echo
+            count=$(jq '[.Results[]?.Vulnerabilities[]?] | length' trivy-results.json 2>/dev/null || echo 0)
+            echo "**Total fixable findings at configured severity:** $count"
+            echo
+            if [ "$count" -gt 0 ]; then
+              echo "| CVE | Severity | Package | Installed | Fixed in |"
+              echo "| --- | --- | --- | --- | --- |"
+              jq -r '[.Results[]?.Vulnerabilities[]?] | unique_by(.VulnerabilityID + .PkgName) | .[] | "| \(.VulnerabilityID) | \(.Severity) | \(.PkgName) | \(.InstalledVersion) | \(.FixedVersion // "-") |"' trivy-results.json
+            fi
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Trivy filesystem scan (human-readable gate)
+        uses: aquasecurity/trivy-action@57a97c7e7821a5776cebc9bb87c984fa69cba8f1 # 0.35.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          severity: ${{ inputs.trivy-severity }}
+          exit-code: "1"
           ignore-unfixed: true
 
       - name: Upload Trivy evidence
