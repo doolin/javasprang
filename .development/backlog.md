@@ -5,6 +5,15 @@ when it becomes active.
 
 <!-- Newest items at the top. -->
 
+- **CI speed: custom Docker image** — Build a project-specific
+  CI image with Java 17, Node 22, Chrome pre-installed, and a
+  pre-warmed Maven cache. Eliminates minutes of setup per job.
+  Push to GitLab Container Registry or GHCR.
+
+- **Upgrade Node 20 to 22** — Node 20 is EOL. Update CI
+  pipelines, frontend-maven-plugin config, and package.json
+  engine requirements to Node 22 LTS.
+
 - **RFC 3161 timestamping for CI evidence** — Add TSA
   (Time Stamping Authority) timestamping of CI artifact
   hashes alongside the existing Solana attestation. RFC 3161
