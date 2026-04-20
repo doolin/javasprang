@@ -5,6 +5,15 @@ when it becomes active.
 
 <!-- Newest items at the top. -->
 
+- **RFC 3161 timestamping for CI evidence** — Add TSA
+  (Time Stamping Authority) timestamping of CI artifact
+  hashes alongside the existing Solana attestation. RFC 3161
+  is the federally recognized standard for trusted timestamps.
+  Dual-chain approach: Solana for decentralized tamper evidence,
+  RFC 3161 for legal admissibility and federal compliance
+  (EO 14028, M-22-18, M-24-15 machine-readable evidence
+  requirements). Both timestamp the same SHA-256 artifact hash.
+
 - **Spring Boot 3 migration** — Migrate from EOL Spring Boot
   2.7.18 to Spring Boot 3.x (Jakarta namespace). Currently
   held together with BOM property overrides for CVE remediation.
