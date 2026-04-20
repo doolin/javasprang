@@ -186,6 +186,79 @@ oscal-cli ssp validate /tmp/oscal-out/ssp-fragment.json
 
 All three should report "is valid."
 
+## RFC 3161 Trusted Timestamps (Sigstore TSA)
+
+The CI attestation pipeline timestamps the SHA-256 hash of the
+`ci-artifacts.zip` evidence bundle using [Sigstore's RFC 3161
+Timestamp Authority](https://github.com/sigstore/timestamp-authority).
+This runs automatically in both GitHub Actions and GitLab CI alongside
+the Solana on-chain attestation.
+
+Dual-chain approach:
+
+- **Solana** — decentralized, tamper-evident anchor
+- **RFC 3161 (Sigstore)** — legally admissible trusted timestamp
+  (EO 14028, M-22-18, M-24-15)
+
+Both attest the same `sha256:<hash>` of the CI evidence archive.
+
+### Artifacts produced
+
+Each attestation run outputs:
+
+| File | Description |
+|------|-------------|
+| `timestamp.tsr` | DER-encoded RFC 3161 timestamp response |
+| `tsa-certchain.pem` | Sigstore TSA certificate chain for verification |
+| `attestation.pdf` | Report including TSA details and verification command |
+
+### Verifying a timestamp locally
+
+```bash
+openssl ts -verify \
+  -in ci-output/timestamp.tsr \
+  -data ci-output/ci-artifacts.zip \
+  -CAfile ci-output/tsa-certchain.pem
+```
+
+Should print `Verification: OK`.
+
+### Inspecting the timestamp token
+
+```bash
+openssl ts -reply -in ci-output/timestamp.tsr -text
+```
+
+### Running attestation locally
+
+```bash
+cd scripts && npm ci && cd ..
+mkdir -p /tmp/attest-test
+echo "test" > /tmp/attest-test/dummy.txt
+
+ARTIFACT_DIR=/tmp/attest-test OUTPUT_DIR=/tmp/attest-output \
+  node scripts/attest.mjs
+```
+
+The TSA timestamp is requested automatically. To use an alternate
+TSA server, set `TSA_URL`:
+
+```bash
+TSA_URL=https://freetsa.org/tsr \
+  ARTIFACT_DIR=/tmp/attest-test OUTPUT_DIR=/tmp/attest-output \
+  node scripts/attest.mjs
+```
+
+### CI configuration
+
+No additional secrets or variables are required. The Sigstore TSA is
+a free, unauthenticated public service. The `TSA_URL` environment
+variable can be set in CI to override the default
+(`https://timestamp.sigstore.dev/api/v1/timestamp`).
+
+TSA failures are non-fatal: the pipeline completes and the PDF
+report notes the failure reason.
+
 ## Handling Large Files
 
 This repository is configured to prevent large files from being committed. The following files and directories are ignored:

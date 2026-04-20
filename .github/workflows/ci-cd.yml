@@ -155,6 +155,8 @@ jobs:
           path: |
             ci-output/ci-artifacts.zip
             ci-output/attestation.pdf
+            ci-output/timestamp.tsr
+            ci-output/tsa-certchain.pem
           retention-days: 90
 
       - name: Cleanup keypair

@@ -27,10 +27,12 @@
  *   SOLANA_NETWORK        "devnet" or "mainnet-beta" (default: devnet)
  *   S3_COMPLIANCE_BUCKET  S3 bucket name. Unset -> skip S3 upload.
  *   AWS_REGION            AWS region (default: us-east-1)
+ *   TSA_URL               RFC 3161 TSA endpoint (default: Sigstore)
  */
 
 import {
   readFileSync,
+  writeFileSync,
   createWriteStream,
   existsSync,
   mkdirSync,
@@ -60,6 +62,10 @@ const MEMO_PROGRAM_ID = new PublicKey(
 );
 const ZIP_FILENAME = "ci-artifacts.zip";
 const PDF_FILENAME = "attestation.pdf";
+const TSR_FILENAME = "timestamp.tsr";
+const TSA_CHAIN_FILENAME = "tsa-certchain.pem";
+const DEFAULT_TSA_URL =
+  "https://timestamp.sigstore.dev/api/v1/timestamp";
 
 function getCommitSha() {
   if (process.env.GITHUB_SHA) return process.env.GITHUB_SHA;
@@ -167,6 +173,47 @@ async function submitSolanaMemo(payload, keypairPath, network) {
   );
 }
 
+function createTimestampQuery(checksumHex) {
+  const result = execSync(
+    `openssl ts -query -digest ${checksumHex} -sha256 -cert -no_nonce`,
+    { encoding: "buffer" },
+  );
+  return result;
+}
+
+async function requestTimestamp(tsqBuffer, tsaUrl) {
+  const resp = await fetch(tsaUrl, {
+    method: "POST",
+    headers: { "Content-Type": "application/timestamp-query" },
+    body: tsqBuffer,
+  });
+  if (!resp.ok) {
+    throw new Error(`TSA returned ${resp.status}: ${await resp.text()}`);
+  }
+  return Buffer.from(await resp.arrayBuffer());
+}
+
+async function fetchTsaCertChain(tsaUrl) {
+  const chainUrl = tsaUrl.replace(/\/timestamp$/, "/timestamp/certchain");
+  const resp = await fetch(chainUrl);
+  if (!resp.ok) {
+    throw new Error(`TSA certchain returned ${resp.status}`);
+  }
+  return await resp.text();
+}
+
+function verifyTimestamp(tsrPath, dataPath, certChainPath) {
+  try {
+    execSync(
+      `openssl ts -verify -in "${tsrPath}" -data "${dataPath}" -CAfile "${certChainPath}"`,
+      { stdio: "pipe" },
+    );
+    return { ok: true };
+  } catch (err) {
+    return { ok: false, error: err.stderr?.toString() || err.message };
+  }
+}
+
 async function generatePdf(evidence, outputPath) {
   const doc = new PDFDocument({ size: "LETTER", margin: 50 });
   const stream = createWriteStream(outputPath);
@@ -232,6 +279,26 @@ async function generatePdf(evidence, outputPath) {
     }
     doc.moveDown(0.7);
 
+    doc.fontSize(14).font("Helvetica-Bold").text("Trusted Timestamp (RFC 3161)");
+    doc.moveDown(0.3);
+    doc.fontSize(10).font("Helvetica");
+    if (evidence.tsaTimestamp) {
+      doc.text(`TSA: ${evidence.tsaUrl}`);
+      doc.text(`Timestamp: ${evidence.tsaTimestamp}`);
+      doc.text(`Verified: ${evidence.tsaVerified ? "yes" : "no"}`);
+      doc.fontSize(9).text("Verification:");
+      doc
+        .fontSize(8)
+        .text(
+          `  openssl ts -verify -in ${TSR_FILENAME} -data ${ZIP_FILENAME} -CAfile ${TSA_CHAIN_FILENAME}`,
+        );
+    } else {
+      doc.text("No RFC 3161 timestamp recorded.");
+      if (evidence.tsaError)
+        doc.fontSize(9).text(`  Reason: ${evidence.tsaError}`);
+    }
+    doc.moveDown(0.7);
+
     doc.fontSize(14).font("Helvetica-Bold").text("Timeline");
     doc.moveDown(0.3);
     doc.fontSize(10).font("Helvetica");
@@ -263,6 +330,7 @@ async function main() {
   const keypairPath = process.env.SOLANA_KEYPAIR_PATH || "";
   const network = process.env.SOLANA_NETWORK || "devnet";
   const region = process.env.AWS_REGION || "us-east-1";
+  const tsaUrl = process.env.TSA_URL || DEFAULT_TSA_URL;
   const provenance = process.env.CI_PROVENANCE || "github";
   const repository = process.env.GITHUB_REPOSITORY || "unknown/repo";
   const branch = process.env.GITHUB_REF_NAME || "";
@@ -299,6 +367,10 @@ async function main() {
     solanaNetwork: network,
     solanaTxSignature: null,
     solanaError: null,
+    tsaUrl,
+    tsaTimestamp: null,
+    tsaVerified: false,
+    tsaError: null,
     completedAt: new Date().toISOString(),
     steps,
   };
@@ -327,6 +399,34 @@ async function main() {
     step("Solana memo", "skipped (SOLANA_KEYPAIR_PATH not set)");
   }
 
+  // RFC 3161 Trusted Timestamp via Sigstore TSA
+  const tsrPath = `${outputDir}/${TSR_FILENAME}`;
+  const chainPath = `${outputDir}/${TSA_CHAIN_FILENAME}`;
+  try {
+    const tsq = createTimestampQuery(checksum);
+    step("TSA query created", `${tsq.length} bytes`);
+
+    const tsr = await requestTimestamp(tsq, tsaUrl);
+    writeFileSync(tsrPath, tsr);
+    step("TSA response saved", TSR_FILENAME);
+
+    const certChain = await fetchTsaCertChain(tsaUrl);
+    writeFileSync(chainPath, certChain);
+    step("TSA cert chain saved", TSA_CHAIN_FILENAME);
+
+    const verification = verifyTimestamp(tsrPath, zipPath, chainPath);
+    evidence.tsaVerified = verification.ok;
+    evidence.tsaTimestamp = new Date().toISOString();
+    step(
+      "TSA verification",
+      verification.ok ? "PASSED" : `FAILED - ${verification.error}`,
+    );
+  } catch (err) {
+    evidence.tsaError = err.message;
+    console.warn(`  RFC 3161 timestamp failed (non-fatal): ${err.message}`);
+    step("RFC 3161 timestamp", `FAILED - ${err.message}`);
+  }
+
   const pdfPath = `${outputDir}/${PDF_FILENAME}`;
   await generatePdf(evidence, pdfPath);
   step("PDF generated", PDF_FILENAME);
@@ -343,6 +443,12 @@ async function main() {
           })),
           { path: zipPath, name: ZIP_FILENAME },
           { path: pdfPath, name: PDF_FILENAME },
+          ...(existsSync(tsrPath)
+            ? [{ path: tsrPath, name: TSR_FILENAME }]
+            : []),
+          ...(existsSync(chainPath)
+            ? [{ path: chainPath, name: TSA_CHAIN_FILENAME }]
+            : []),
         ],
         region,
       );

@@ -132,7 +132,7 @@ attest:
     GITLAB_OIDC_TOKEN:
       aud: https://gitlab.com
   before_script:
-    - apk add --no-cache bash aws-cli
+    - apk add --no-cache bash aws-cli openssl
     # Write GitLab OIDC token for AWS assume-role-with-web-identity.
     - |
       if [ -n "$AWS_ROLE_ARN" ]; then
@@ -167,6 +167,8 @@ attest:
     paths:
       - ci-output/ci-artifacts.zip
       - ci-output/attestation.pdf
+      - ci-output/timestamp.tsr
+      - ci-output/tsa-certchain.pem
 
 # Future work (tracked in-skill via cross-refs):
 #   deploy: per-env Helm / k8s / Lambda — needs infra + deploy token
