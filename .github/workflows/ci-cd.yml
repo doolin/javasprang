@@ -24,7 +24,7 @@ jobs:
     uses: ./.github/workflows/golden-pipeline.yml
     with:
       java-version: "17"
-      node-version: "20.11.1"
+      node-version: "22.22.2"
       # Initial baseline: gate the build on CRITICAL only. HIGH findings are
       # still captured as evidence (Trivy JSON step) but not failing yet —
       # remediation tracked separately. Raise back to "CRITICAL,HIGH" once
@@ -107,7 +107,7 @@ jobs:
       - name: Set up Node 20
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6.3.0
         with:
-          node-version: "20"
+          node-version: "22"
 
       - name: Install attest script dependencies
         working-directory: scripts

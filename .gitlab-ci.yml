@@ -28,7 +28,7 @@ stages:
 
 variables:
   JAVA_VERSION: "17"
-  NODE_VERSION: "20.11.1"
+  NODE_VERSION: "22.22.2"
   FRONTEND_DIR: "src/main/frontend"
   # Initial baseline (matches .github/workflows/ci-cd.yml). Raise to
   # "CRITICAL,HIGH" once the HIGH baseline is clean.
@@ -103,7 +103,7 @@ package:
 
 attest:
   stage: attest
-  image: node:20-alpine
+  image: node:22-alpine
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"'
   needs:

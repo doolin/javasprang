@@ -67,7 +67,7 @@ test:
     # Install Node alongside Java so the frontend-maven-plugin doesn't
     # need to download its own each run. Version matches JAVA+NODE
     # combo used on the GitHub pipeline.
-    - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    - curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
     - apt-get install -y -qq nodejs
     - node --version && npm --version
   script:
@@ -92,7 +92,7 @@ test:
 # 2a. E2E (desktop + mobile viewports)
 # ---------------------------------------------------------------------
 # Uses Microsoft's official Playwright image — Chromium + WebKit +
-# Firefox preinstalled, Node 20 preinstalled. Pinned to the same
+# Firefox preinstalled, Node preinstalled. Pinned to the same
 # version as the @playwright/test dep in src/main/frontend/package.json.
 # iPhone 14 Pro emulation (mobile-safari project) uses WebKit, so we
 # need an image that has it.
@@ -179,7 +179,7 @@ sbom:
       - .m2/repository
   before_script:
     - apt-get update -qq && apt-get install -y -qq curl
-    - curl -fsSL https://deb.nodesource.com/setup_20.x | bash -
+    - curl -fsSL https://deb.nodesource.com/setup_22.x | bash -
     - apt-get install -y -qq nodejs
     # Install syft (SBOM tool that powers anchore/sbom-action on GitHub)
     - curl -sSfL https://raw.githubusercontent.com/anchore/syft/main/install.sh | sh -s -- -b /usr/local/bin
@@ -201,7 +201,7 @@ sbom:
 # ---------------------------------------------------------------------
 oscal:
   stage: compliance-oscal
-  image: node:20-alpine
+  image: node:22-alpine
   <<: *default-rules
   needs:
     - job: vulnerability-scan
@@ -232,7 +232,7 @@ oscal:
 # ---------------------------------------------------------------------
 verify-evidence:
   stage: compliance-verify
-  image: node:20-alpine
+  image: node:22-alpine
   <<: *default-rules
   needs:
     - job: vulnerability-scan
