@@ -7,7 +7,12 @@
       "Bash(npm install:*)",
       "Bash(grep:*)",
       "Bash(uvx showboat:*)",
-      "Bash(npx markdownlint-cli2:*)"
+      "Bash(npx markdownlint-cli2:*)",
+      "Bash(curl -sL \"https://api.github.com/repos/usnistgov/OSCAL/git/trees/v1.1.2?recursive=1\")",
+      "Bash(python3 -c \"import sys,json; tree=json.load\\(sys.stdin\\).get\\('tree',[]\\); [print\\(t['path']\\) for t in tree if 'assessment-results' in t['path'] and t['path'].endswith\\('.json'\\)]\")",
+      "Bash(python3 -c \"import sys,json; tree=json.load\\(sys.stdin\\).get\\('tree',[]\\); print\\(f'Found {len\\(tree\\)} entries'\\); [print\\(t['path']\\) for t in tree if 'assessment' in t['path']]\")",
+      "Bash(git stash:*)",
+      "Bash(git checkout:*)"
     ]
   }
 }

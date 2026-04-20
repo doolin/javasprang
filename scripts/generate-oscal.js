@@ -45,6 +45,7 @@ function deterministicUuid(seed) {
 
 const componentUuid = deterministicUuid(`component:${repo}:${commit}`);
 const partyUuid = deterministicUuid(`party:${repo}`);
+const assessmentPlanUuid = deterministicUuid(`assessment-plan:${repo}`);
 
 function readJsonIfExists(p) {
   try {
@@ -170,7 +171,7 @@ const assessmentResults = {
       ],
     },
     "import-ap": {
-      href: "#assessment-plan-placeholder",
+      href: `#${assessmentPlanUuid}`,
     },
     results: [
       {
@@ -214,11 +215,16 @@ const assessmentResults = {
     "back-matter": {
       resources: [
         {
-          uuid: uuid(),
-          title: "Assessment Plan Placeholder",
+          uuid: assessmentPlanUuid,
+          title: "CI/CD Pipeline Assessment Plan",
           description:
-            "Placeholder for a formal assessment plan. The CI/CD pipeline serves as the de facto assessment plan.",
-          props: [{ name: "type", value: "assessment-plan" }],
+            "The CI/CD golden pipeline serves as the de facto assessment plan. It defines the automated assessment methodology for each control.",
+          rlinks: [
+            {
+              href: "https://github.com/" + repo,
+              "media-type": "text/html",
+            },
+          ],
         },
       ],
     },
