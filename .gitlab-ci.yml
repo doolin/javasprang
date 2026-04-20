@@ -124,10 +124,20 @@ attest:
     GITHUB_SERVER_URL: $CI_SERVER_URL
     CI_PROVENANCE: gitlab
     SOLANA_NETWORK: ${SOLANA_NETWORK:-devnet}
-    # Fixed path so it persists across before_script/script/after_script.
+    # Fixed paths so they persist across before_script/script/after_script.
     SOLANA_KEYPAIR_PATH: /tmp/solana-keypair.json
+    AWS_WEB_IDENTITY_TOKEN_FILE: /tmp/gitlab-oidc-token
+    AWS_DEFAULT_REGION: ${AWS_REGION:-us-east-1}
+  id_tokens:
+    GITLAB_OIDC_TOKEN:
+      aud: https://gitlab.com
   before_script:
-    - apk add --no-cache bash
+    - apk add --no-cache bash aws-cli
+    # Write GitLab OIDC token for AWS assume-role-with-web-identity.
+    - |
+      if [ -n "$AWS_ROLE_ARN" ]; then
+        echo "$GITLAB_OIDC_TOKEN" > "$AWS_WEB_IDENTITY_TOKEN_FILE"
+      fi
     - cd scripts && npm ci && cd "$CI_PROJECT_DIR"
     # Collect artifacts from prior jobs into a flat directory.
     - mkdir -p ci-artifacts
@@ -147,7 +157,7 @@ attest:
   script:
     - node scripts/attest.mjs
   after_script:
-    - rm -f "$SOLANA_KEYPAIR_PATH"
+    - rm -f "$SOLANA_KEYPAIR_PATH" "$AWS_WEB_IDENTITY_TOKEN_FILE"
     - |
       echo "{\"event\":\"attest\",\"severity\":\"info\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
   artifacts:
