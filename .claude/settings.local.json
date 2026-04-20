@@ -1,0 +1,11 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(glab ci:*)",
+      "Bash(glab api:*)",
+      "Bash(python3 -c \"import sys,json; ps=json.load\\(sys.stdin\\); print\\(ps[0]['id'], ps[0]['status']\\)\")",
+      "Bash(npm install:*)",
+      "Bash(grep:*)"
+    ]
+  }
+}

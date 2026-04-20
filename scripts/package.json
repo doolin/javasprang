@@ -1,0 +1,9 @@
+{
+  "name": "javasprang-ci-scripts",
+  "private": true,
+  "dependencies": {
+    "@solana/web3.js": "^1.98.0",
+    "archiver": "^7.0.1",
+    "pdfkit": "^0.16.0"
+  }
+}
