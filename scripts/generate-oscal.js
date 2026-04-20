@@ -261,8 +261,8 @@ const componentDefinition = {
         ],
         props: [
           { name: "version", value: commit.slice(0, 7) },
-          { name: "commit", value: commit },
-          { name: "run-id", value: runId },
+          { name: "software-identifier", value: commit },
+          { name: "label", value: `CI run ${runId}` },
         ],
       },
     ],
@@ -371,17 +371,15 @@ const sspFragment = {
           uuid: uuid(),
           "control-id": "ra-5",
           props: [
-            { name: "implementation-status", value: "implemented" },
+            { name: "control-origination", value: "system-specific" },
           ],
-          "responsible-roles": [
-            { "role-id": "developer", "party-uuids": [partyUuid] },
-          ],
-          statements: [
+          "by-components": [
             {
-              "statement-id": "ra-5_smt",
+              "component-uuid": systemImplComponentUuid,
               uuid: uuid(),
-              remarks:
+              description:
                 "Vulnerability scanning is performed automatically on every push via Trivy (filesystem scan) and npm audit (dependency audit). Results are captured as OSCAL assessment evidence.",
+              "implementation-status": { state: "implemented" },
             },
           ],
         },
@@ -389,17 +387,15 @@ const sspFragment = {
           uuid: uuid(),
           "control-id": "sa-11",
           props: [
-            { name: "implementation-status", value: "implemented" },
+            { name: "control-origination", value: "system-specific" },
           ],
-          "responsible-roles": [
-            { "role-id": "developer", "party-uuids": [partyUuid] },
-          ],
-          statements: [
+          "by-components": [
             {
-              "statement-id": "sa-11_smt",
+              "component-uuid": systemImplComponentUuid,
               uuid: uuid(),
-              remarks:
+              description:
                 "The CI/CD pipeline runs automated tests (JUnit, Karma, Playwright) on every push. Test results and coverage reports are retained as compliance evidence.",
+              "implementation-status": { state: "implemented" },
             },
           ],
         },
@@ -407,17 +403,15 @@ const sspFragment = {
           uuid: uuid(),
           "control-id": "sa-15",
           props: [
-            { name: "implementation-status", value: "implemented" },
+            { name: "control-origination", value: "system-specific" },
           ],
-          "responsible-roles": [
-            { "role-id": "developer", "party-uuids": [partyUuid] },
-          ],
-          statements: [
+          "by-components": [
             {
-              "statement-id": "sa-15_smt",
+              "component-uuid": systemImplComponentUuid,
               uuid: uuid(),
-              remarks:
+              description:
                 "An SBOM (CycloneDX format) is generated each CI run from resolved production dependencies, documenting the software supply chain.",
+              "implementation-status": { state: "implemented" },
             },
           ],
         },
