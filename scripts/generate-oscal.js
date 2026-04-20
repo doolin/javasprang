@@ -193,7 +193,7 @@ const assessmentResults = {
             },
           ],
         },
-        observations,
+        ...(observations.length > 0 ? { observations } : {}),
         findings:
           findings.length > 0
             ? findings
@@ -370,20 +370,56 @@ const sspFragment = {
         {
           uuid: uuid(),
           "control-id": "ra-5",
-          description:
-            "Vulnerability scanning is performed automatically on every push via Trivy (filesystem scan) and npm audit (dependency audit). Results are captured as OSCAL assessment evidence.",
+          props: [
+            { name: "implementation-status", value: "implemented" },
+          ],
+          "responsible-roles": [
+            { "role-id": "developer", "party-uuids": [partyUuid] },
+          ],
+          statements: [
+            {
+              "statement-id": "ra-5_smt",
+              uuid: uuid(),
+              remarks:
+                "Vulnerability scanning is performed automatically on every push via Trivy (filesystem scan) and npm audit (dependency audit). Results are captured as OSCAL assessment evidence.",
+            },
+          ],
         },
         {
           uuid: uuid(),
           "control-id": "sa-11",
-          description:
-            "The CI/CD pipeline runs automated tests (JUnit, Karma, Playwright) on every push. Test results and coverage reports are retained as compliance evidence.",
+          props: [
+            { name: "implementation-status", value: "implemented" },
+          ],
+          "responsible-roles": [
+            { "role-id": "developer", "party-uuids": [partyUuid] },
+          ],
+          statements: [
+            {
+              "statement-id": "sa-11_smt",
+              uuid: uuid(),
+              remarks:
+                "The CI/CD pipeline runs automated tests (JUnit, Karma, Playwright) on every push. Test results and coverage reports are retained as compliance evidence.",
+            },
+          ],
         },
         {
           uuid: uuid(),
           "control-id": "sa-15",
-          description:
-            "An SBOM (CycloneDX format) is generated each CI run from resolved production dependencies, documenting the software supply chain.",
+          props: [
+            { name: "implementation-status", value: "implemented" },
+          ],
+          "responsible-roles": [
+            { "role-id": "developer", "party-uuids": [partyUuid] },
+          ],
+          statements: [
+            {
+              "statement-id": "sa-15_smt",
+              uuid: uuid(),
+              remarks:
+                "An SBOM (CycloneDX format) is generated each CI run from resolved production dependencies, documenting the software supply chain.",
+            },
+          ],
         },
       ],
     },
