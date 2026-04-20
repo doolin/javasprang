@@ -89,6 +89,40 @@ test:
         - target/surefire-reports/TEST-*.xml
 
 # ---------------------------------------------------------------------
+# 2a. E2E (desktop + mobile viewports)
+# ---------------------------------------------------------------------
+# Uses Microsoft's official Playwright image — Chromium + WebKit +
+# Firefox preinstalled, Node 20 preinstalled. Pinned to the same
+# version as the @playwright/test dep in src/main/frontend/package.json.
+# iPhone 14 Pro emulation (mobile-safari project) uses WebKit, so we
+# need an image that has it.
+e2e:
+  stage: compliance-check
+  image: mcr.microsoft.com/playwright:v1.58.2-jammy
+  <<: *default-rules
+  variables:
+    # Playwright caches its browsers in this dir in the base image.
+    # Leaving it alone lets the preinstalled browsers be used.
+    PLAYWRIGHT_BROWSERS_PATH: /ms-playwright
+  cache:
+    key: npm-$CI_COMMIT_REF_SLUG
+    paths:
+      - $FRONTEND_DIR/node_modules
+  script:
+    - cd $FRONTEND_DIR
+    - npm ci
+    - npm run test:e2e
+  after_script:
+    - |
+      echo "{\"event\":\"e2e\",\"severity\":\"info\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+  artifacts:
+    <<: *artifacts-defaults
+    name: "playwright-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - $FRONTEND_DIR/coverage/playwright/html-report/
+      - $FRONTEND_DIR/test-results/
+
+# ---------------------------------------------------------------------
 # 3. Vulnerability Scan (PW.7 / PW.8)
 # ---------------------------------------------------------------------
 vulnerability-scan:
