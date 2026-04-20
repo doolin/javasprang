@@ -24,6 +24,7 @@ stages:
   - compliance-oscal       # needs vuln-scan
   - compliance-verify      # needs vuln-scan + sbom + oscal
   - package                # main/master only: jar + SLSA provenance
+  - attest                 # main/master only: Solana on-chain attestation
 
 variables:
   JAVA_VERSION: "17"
@@ -100,6 +101,62 @@ package:
       - target/*.sha256
       - src/main/resources/static/version.json
 
+attest:
+  stage: attest
+  image: node:20-alpine
+  rules:
+    - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"'
+  needs:
+    - job: secrets-scan
+    - job: test
+    - job: vulnerability-scan
+    - job: sbom
+    - job: oscal
+    - job: verify-evidence
+  variables:
+    ARTIFACT_DIR: ci-artifacts
+    OUTPUT_DIR: ci-output
+    # Map GitLab CI vars to the env vars attest.mjs expects.
+    GITHUB_SHA: $CI_COMMIT_SHA
+    GITHUB_REPOSITORY: $CI_PROJECT_PATH
+    GITHUB_REF_NAME: $CI_COMMIT_REF_NAME
+    GITHUB_RUN_ID: $CI_PIPELINE_ID
+    GITHUB_SERVER_URL: $CI_SERVER_URL
+    CI_PROVENANCE: gitlab
+    SOLANA_NETWORK: ${SOLANA_NETWORK:-devnet}
+    # Fixed path so it persists across before_script/script/after_script.
+    SOLANA_KEYPAIR_PATH: /tmp/solana-keypair.json
+  before_script:
+    - apk add --no-cache bash
+    - cd scripts && npm ci && cd "$CI_PROJECT_DIR"
+    # Collect artifacts from prior jobs into a flat directory.
+    - mkdir -p ci-artifacts
+    - cp gitleaks-report.json ci-artifacts/ 2>/dev/null || true
+    - cp trivy-results.json ci-artifacts/ 2>/dev/null || true
+    - cp "$FRONTEND_DIR/npm-audit.json" ci-artifacts/ 2>/dev/null || true
+    - cp sbom.cyclonedx.json ci-artifacts/ 2>/dev/null || true
+    - cp -r oscal/* ci-artifacts/ 2>/dev/null || true
+    - cp evidence-manifest.json ci-artifacts/ 2>/dev/null || true
+    # Write Solana keypair (printf, not echo — avoids trailing newline
+    # that breaks JSON-array parsing).
+    - |
+      if [ -n "$SOLANA_KEYPAIR" ]; then
+        printf '%s' "$SOLANA_KEYPAIR" > "$SOLANA_KEYPAIR_PATH"
+        chmod 600 "$SOLANA_KEYPAIR_PATH"
+      fi
+  script:
+    - node scripts/attest.mjs
+  after_script:
+    - rm -f "$SOLANA_KEYPAIR_PATH"
+    - |
+      echo "{\"event\":\"attest\",\"severity\":\"info\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+  artifacts:
+    expire_in: 90 days
+    when: always
+    name: "attestation-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - ci-output/ci-artifacts.zip
+      - ci-output/attestation.pdf
+
 # Future work (tracked in-skill via cross-refs):
 #   deploy: per-env Helm / k8s / Lambda — needs infra + deploy token
-#   attest: Solana on-chain memo + PDF — see solana-cicd-hash skill

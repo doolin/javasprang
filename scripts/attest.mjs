@@ -263,6 +263,7 @@ async function main() {
   const keypairPath = process.env.SOLANA_KEYPAIR_PATH || "";
   const network = process.env.SOLANA_NETWORK || "devnet";
   const region = process.env.AWS_REGION || "us-east-1";
+  const provenance = process.env.CI_PROVENANCE || "github";
   const repository = process.env.GITHUB_REPOSITORY || "unknown/repo";
   const branch = process.env.GITHUB_REF_NAME || "";
   const serverUrl = process.env.GITHUB_SERVER_URL || "";
@@ -309,7 +310,7 @@ async function main() {
           s3_key: s3Key,
           artifact_checksum: `sha256:${checksum}`,
           commit: commitSha,
-          provenance: "github",
+          provenance,
           timestamp: evidence.completedAt,
         },
         keypairPath,
