@@ -6,7 +6,11 @@ milestones.
 
 ## Current priorities
 
-<!-- What matters most right now and why. -->
+- **Deploy on demand, not big bang.** CI must be fast enough
+  to support continuous deployment. Target: full pipeline
+  under 5 minutes.
+- **CI speed** is the gate. Custom Docker image is the
+  highest-impact fix. Node 22 upgrade at the same time.
 
 ## Open questions
 
