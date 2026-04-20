@@ -80,9 +80,11 @@ if (npmAudit && npmAudit.vulnerabilities) {
       types: ["finding"],
       subjects: [{ "subject-uuid": componentUuid, type: "component" }],
       collected: now,
-      props: [
-        { name: "source", value: "npm-audit" },
-        { name: "severity", value: v.severity || "unknown" },
+      "relevant-evidence": [
+        {
+          href: "#npm-audit-evidence",
+          description: `npm advisory: ${name} (severity: ${v.severity || "unknown"})`,
+        },
       ],
     });
 
@@ -114,21 +116,18 @@ if (trivy && Array.isArray(trivy.Results)) {
         types: ["finding"],
         subjects: [{ "subject-uuid": componentUuid, type: "component" }],
         collected: now,
-        props: [
-          { name: "source", value: "trivy" },
-          { name: "vulnerability-id", value: vuln.VulnerabilityID },
+        "relevant-evidence": [
           {
-            name: "severity",
-            value: (vuln.Severity || "unknown").toLowerCase(),
+            href: "#trivy-evidence",
+            description: [
+              vuln.VulnerabilityID,
+              `severity: ${(vuln.Severity || "unknown").toLowerCase()}`,
+              `pkg: ${vuln.PkgName || "unknown"}@${vuln.InstalledVersion || "unknown"}`,
+              vuln.FixedVersion ? `fixed: ${vuln.FixedVersion}` : null,
+            ]
+              .filter(Boolean)
+              .join(" | "),
           },
-          { name: "package", value: vuln.PkgName || "unknown" },
-          {
-            name: "installed-version",
-            value: vuln.InstalledVersion || "unknown",
-          },
-          ...(vuln.FixedVersion
-            ? [{ name: "fixed-version", value: vuln.FixedVersion }]
-            : []),
         ],
       });
 

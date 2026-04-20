@@ -157,6 +157,35 @@ Combined coverage outputs are written to:
 - `src/main/frontend/coverage/combined/summary.json`
 - `src/main/frontend/coverage/combined/summary.md`
 
+## Validating OSCAL Artifacts
+
+The CI pipeline generates three OSCAL documents per run. To validate
+them locally against the NIST schema, install `oscal-cli`:
+
+```bash
+mkdir -p ~/opt/oscal-cli && cd ~/opt/oscal-cli
+curl -sLO https://repo1.maven.org/maven2/gov/nist/secauto/oscal/tools/oscal-cli/cli-core/1.0.3/cli-core-1.0.3-oscal-cli.zip
+unzip cli-core-1.0.3-oscal-cli.zip
+export PATH=$PATH:~/opt/oscal-cli/bin
+```
+
+Generate test artifacts and validate:
+
+```bash
+mkdir -p /tmp/oscal-evidence /tmp/oscal-out
+echo '{"Results":[]}' > /tmp/oscal-evidence/trivy-results.json
+echo '{"vulnerabilities":{}}' > /tmp/oscal-evidence/npm-audit.json
+
+REPO=doolin/javasprang COMMIT_SHA=$(git rev-parse HEAD) RUN_ID=local \
+  node scripts/generate-oscal.js /tmp/oscal-evidence /tmp/oscal-out
+
+oscal-cli ar validate /tmp/oscal-out/assessment-results.json
+oscal-cli component-definition validate /tmp/oscal-out/component-definition.json
+oscal-cli ssp validate /tmp/oscal-out/ssp-fragment.json
+```
+
+All three should report "is valid."
+
 ## Handling Large Files
 
 This repository is configured to prevent large files from being committed. The following files and directories are ignored:
