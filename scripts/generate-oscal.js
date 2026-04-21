@@ -57,11 +57,55 @@ function readJsonIfExists(p) {
 
 const npmAudit = readJsonIfExists(path.join(evidenceDir, "npm-audit.json"));
 const trivy = readJsonIfExists(path.join(evidenceDir, "trivy-results.json"));
+const gitleaks = readJsonIfExists(path.join(evidenceDir, "gitleaks-report.json"));
 
 // --- Build observations and findings from scan results ---
 
 const observations = [];
 const findings = [];
+
+// --- Gitleaks (SI-3: secrets scan) ---
+
+if (gitleaks) {
+  const gitleaksFindings = gitleaks.findings || gitleaks;
+  const items = Array.isArray(gitleaksFindings) ? gitleaksFindings : [];
+
+  if (items.length > 0) {
+    for (const leak of items) {
+      const obsUuid = uuid();
+      const desc = `${leak.RuleID || "secret"}: ${leak.File || "unknown file"}` +
+        (leak.StartLine ? ` line ${leak.StartLine}` : "");
+
+      observations.push({
+        uuid: obsUuid,
+        title: `gitleaks: ${leak.RuleID || "secret detected"}`,
+        description: leak.Description || desc,
+        methods: ["TEST"],
+        types: ["finding"],
+        subjects: [{ "subject-uuid": componentUuid, type: "component" }],
+        collected: now,
+        "relevant-evidence": [
+          {
+            href: "#gitleaks-evidence",
+            description: desc,
+          },
+        ],
+      });
+
+      findings.push({
+        uuid: uuid(),
+        title: `gitleaks: ${leak.RuleID || "secret detected"}`,
+        description: leak.Description || desc,
+        target: {
+          type: "objective-id",
+          "target-id": "si-3_obj",
+          status: { state: "not-satisfied" },
+        },
+        "related-observations": [{ "observation-uuid": obsUuid }],
+      });
+    }
+  }
+}
 
 if (npmAudit && npmAudit.vulnerabilities) {
   for (const [name, v] of Object.entries(npmAudit.vulnerabilities)) {
