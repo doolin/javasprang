@@ -26,6 +26,12 @@ const expected = [
   { artifact: "oscal", file: "ssp-fragment.json" },
 ];
 
+const expectedDirs = [
+  { artifact: "surefire-reports", dir: "surefire-reports" },
+  { artifact: "jacoco-report", dir: "jacoco-report" },
+  { artifact: "frontend-coverage", dir: "frontend-coverage" },
+];
+
 function walk(dir) {
   const out = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -57,6 +63,20 @@ const entries = files.map((f) => ({
 const byName = new Set(entries.map((e) => path.basename(e.path)));
 const missing = expected.filter((x) => !byName.has(x.file));
 
+// Directory-based checks: each expectedDir must exist as a subdirectory
+// under the evidence root and contain at least one file.
+const missingDirs = expectedDirs.filter((x) => {
+  const dirPath = path.join(evidenceDir, x.dir);
+  if (!fs.existsSync(dirPath) || !fs.statSync(dirPath).isDirectory()) {
+    return true;
+  }
+  // Must contain at least one file
+  const dirFiles = walk(dirPath);
+  return dirFiles.length === 0;
+});
+
+const totalMissing = missing.length + missingDirs.length;
+
 const manifest = {
   generated_at: new Date().toISOString(),
   commit: process.env.COMMIT_SHA || process.env.GITHUB_SHA || "unknown",
@@ -65,6 +85,8 @@ const manifest = {
   artifacts: entries,
   expected,
   missing,
+  expectedDirs,
+  missingDirs,
 };
 
 fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
@@ -72,18 +94,28 @@ fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + "\n");
 console.log(
   JSON.stringify({
     event: "verify_evidence",
-    severity: missing.length ? "high" : "info",
+    severity: totalMissing ? "high" : "info",
     artifacts_found: entries.length,
     missing_count: missing.length,
     missing_files: missing.map((m) => m.file),
+    missing_dir_count: missingDirs.length,
+    missing_dirs: missingDirs.map((m) => m.dir),
     timestamp: manifest.generated_at,
   }),
 );
 
-if (missing.length > 0) {
-  console.error(
-    `evidence manifest incomplete — missing ${missing.length} expected artifact(s): ` +
-      missing.map((m) => m.file).join(", "),
-  );
+if (totalMissing > 0) {
+  const parts = [];
+  if (missing.length > 0) {
+    parts.push(
+      `${missing.length} expected file(s): ${missing.map((m) => m.file).join(", ")}`,
+    );
+  }
+  if (missingDirs.length > 0) {
+    parts.push(
+      `${missingDirs.length} expected dir(s): ${missingDirs.map((m) => m.dir).join(", ")}`,
+    );
+  }
+  console.error(`evidence manifest incomplete — missing ${parts.join("; ")}`);
   process.exit(1);
 }
