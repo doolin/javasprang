@@ -453,6 +453,29 @@ async function main() {
         region,
       );
       step("Uploaded to S3", `s3://${bucket}/${s3Prefix}/`);
+
+      // Write S3 receipt so downstream jobs can verify the upload occurred
+      const uploadedFiles = [
+        ...includedFiles,
+        ZIP_FILENAME,
+        PDF_FILENAME,
+        ...(existsSync(tsrPath) ? [TSR_FILENAME] : []),
+        ...(existsSync(chainPath) ? [TSA_CHAIN_FILENAME] : []),
+      ];
+      writeFileSync(
+        `${outputDir}/s3-receipt.json`,
+        JSON.stringify(
+          {
+            bucket,
+            prefix: s3Prefix,
+            region,
+            uploaded_files: uploadedFiles,
+            uploaded_at: new Date().toISOString(),
+          },
+          null,
+          2,
+        ),
+      );
     } catch (err) {
       console.warn(`  S3 upload failed (non-fatal): ${err.message}`);
       step("S3 upload", `FAILED - ${err.message}`);
@@ -463,6 +486,12 @@ async function main() {
 
   console.log("\nAttestation complete.");
   console.log(JSON.stringify(evidence, null, 2));
+
+  // Write machine-readable attestation JSON alongside the PDF
+  writeFileSync(
+    `${outputDir}/attestation.json`,
+    JSON.stringify(evidence, null, 2),
+  );
 }
 
 main().catch((err) => {
