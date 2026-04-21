@@ -130,3 +130,6 @@ application-*.yml
 application-*.properties
 !application.yml
 !application.properties 
+
+# Downloaded CI evidence snapshots (ephemeral, per-run)
+docs/compliance/artifacts/

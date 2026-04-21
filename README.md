@@ -157,6 +157,47 @@ Combined coverage outputs are written to:
 - `src/main/frontend/coverage/combined/summary.json`
 - `src/main/frontend/coverage/combined/summary.md`
 
+## Compliance Evidence and Control Mapping
+
+The CI/CD golden pipeline produces a structured evidence bundle on
+every push. Each artifact maps to one or more NIST SP 800-53 Rev. 5
+controls and NIST SP 800-218 (SSDF) practices. The normative
+reference is the `cicd-golden-pipeline` skill in `doolin/dave-skills`.
+
+Detailed assessment methodology and a per-run checklist are in
+[docs/compliance/README.md](docs/compliance/README.md).
+
+### Artifact-to-control table
+
+| Artifact | What it evidences | 800-53 | SSDF | ASD STIG | OMB |
+| --- | --- | --- | --- | --- | --- |
+| `assessment-results.json` | OSCAL assessment with findings from npm audit, Trivy, gitleaks | RA-5, SA-11, SA-15, SI-2, SI-3 | PO.4.1, PO.4.2, RV.1.2, RV.2.1 | V-222644, V-222646, V-222648, V-222650, V-222652, V-222614 | M-24-15 (OSCAL-based authorization artifacts) |
+| `ssp-fragment.json` | How CI/CD implements selected controls | RA-5, SA-11, SA-15 | PO.3.3, PO.4.2, PW.8.1, RV.1.2, PS.3.1 | V-222632, V-222644, V-222646, V-222649, V-222645 | M-24-15 (machine-readable, interoperable formats) |
+| `component-definition.json` | Software identity, version, commit binding | CM-8, SA-10, SR-4 | PS.1.1, PS.3.1 | V-222632, V-222645 | M-26-05 (complete inventory), M-24-15 |
+| `gitleaks-report.json` | Secrets scan with metadata envelope | SI-3, SA-11 | PW.6, PW.7.2 | V-222648, V-222650 | M-26-05 (risk-based assurance) |
+| `npm-audit.json` | Dependency vulnerability audit (npm) | RA-5, SI-2 | RV.1.1, RV.1.2, RV.2.1 | V-222614, V-222648, V-222650, V-222652 | M-21-31 (vuln scan logs even when clean), M-26-05 |
+| `trivy-results.json` | Filesystem vulnerability scan (Trivy) | RA-5, SI-2 | RV.1.1, RV.1.2, RV.2.1 | V-222614, V-222648, V-222650, V-222652 | M-21-31 (vuln scan logs even when clean), M-26-05 |
+| `sbom.cyclonedx.json` | CycloneDX SBOM (Syft) | SA-15, CM-8, SR-4 | PS.3.1, RV.1.1, PO.3.3 | V-222632, V-222645, V-222652 | M-26-05 (agencies may request current SBOM) |
+| Surefire XML + JaCoCo | Backend test results and coverage | SA-11 | PW.8.1, PO.4.1, PO.4.2 | V-222644, V-222646, V-222649 | |
+| Frontend coverage | Karma/Istanbul unit test coverage | SA-11 | PW.8.1, PO.4.1, PO.4.2 | V-222644, V-222646, V-222649 | |
+| Playwright reports | E2E test results, traces, screenshots | SA-11 | PW.8.1 | V-222644, V-222646 | |
+| `evidence-manifest.json` | SHA-256 checksums, drift detection | AU-12, CM-3, SI-7, SA-15 | PO.3.3, PO.4.2, PS.3.1 | V-222501, V-222507, V-222645 | M-21-31 (log integrity, validation) |
+| `audit-event-*.json` | Structured per-stage audit trail | AU-2, AU-12 | PO.3.3, PO.5.1 | V-222480, V-222487, V-222501, V-222507 | M-21-31 (structured log format, retention, centralized access) |
+| `attestation.pdf` | Provenance, Solana anchor, RFC 3161 timestamp | SI-7, IA-7, SR-4, SC-12 | PS.2.1, PS.3.1 | V-222513, V-222570, V-222571, V-222645 | M-26-05 (attestation form resources) |
+| `attestation.json` | Machine-readable attestation companion | SI-7, SR-4 | PS.2.1, PS.3.1 | V-222507, V-222645 | M-24-15 (machine-readable, reusable artifacts) |
+| `ci-artifacts.zip` | Packaged evidence bundle | SI-7, SR-4, AU-9 | PS.3.1, PO.3.3 | V-222507, V-222645 | |
+| `timestamp.tsr` + `tsa-certchain.pem` | RFC 3161 trusted timestamp | SI-7, SC-12 | PS.2.1 | V-222513, V-222570 | |
+| Pipeline definition archive | Workflow YAML preserved in manifest | CM-3, SA-15 | PO.3.3, PO.4.2 | V-222632, V-222633 | |
+| S3 archival + `s3-receipt.json` | Durable evidence storage with receipt | AU-9, SI-7 | PS.3.1, PO.3.3 | V-222507, V-222645 | M-21-31 (log retention, preservation) |
+
+**OMB memoranda context:** M-26-05 (Jan 2026) rescinded M-22-18 and
+M-23-16, shifting to risk-based software assurance. Agencies may
+still request SBOMs and use attestation resources developed under
+M-22-18. M-24-15 (Jul 2024) requires OSCAL-based, machine-readable
+authorization artifacts for FedRAMP. M-21-31 (Aug 2021) requires
+structured logging, log retention, and vulnerability scan evidence
+even when no findings are present.
+
 ## Validating OSCAL Artifacts
 
 The CI pipeline generates three OSCAL documents per run. To validate
