@@ -76,7 +76,17 @@ jobs:
       - name: Emit audit event
         if: always()
         run: |
-          echo '{"event":"secrets_scan","severity":"info","stage":"PW.6","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+          event='{"event":"secrets_scan","severity":"info","stage":"PW.6","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+          echo "$event"
+          echo "$event" > audit-event-secrets-scan.json
+
+      - name: Upload audit event
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: audit-event-secrets-scan
+          path: audit-event-secrets-scan.json
+          retention-days: ${{ inputs.evidence-retention-days }}
 
   test:
     name: Test (backend + frontend)
@@ -169,7 +179,17 @@ jobs:
       - name: Emit audit event
         if: always()
         run: |
-          echo '{"event":"test","severity":"info","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+          event='{"event":"test","severity":"info","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+          echo "$event"
+          echo "$event" > audit-event-test.json
+
+      - name: Upload audit event
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: audit-event-test
+          path: audit-event-test.json
+          retention-days: ${{ inputs.evidence-retention-days }}
 
   e2e:
     name: E2E (desktop + mobile viewports)
@@ -240,7 +260,17 @@ jobs:
       - name: Emit audit event
         if: always()
         run: |
-          echo '{"event":"e2e","severity":"info","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+          event='{"event":"e2e","severity":"info","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+          echo "$event"
+          echo "$event" > audit-event-e2e.json
+
+      - name: Upload audit event
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: audit-event-e2e
+          path: audit-event-e2e.json
+          retention-days: ${{ inputs.evidence-retention-days }}
 
   vulnerability-scan:
     name: Vulnerability Scan (PW.7 / PW.8)
@@ -328,7 +358,17 @@ jobs:
       - name: Emit audit event
         if: always()
         run: |
-          echo '{"event":"vulnerability_scan","severity":"info","stage":"PW.7_PW.8","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+          event='{"event":"vulnerability_scan","severity":"info","stage":"PW.7_PW.8","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+          echo "$event"
+          echo "$event" > audit-event-vulnerability-scan.json
+
+      - name: Upload audit event
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: audit-event-vulnerability-scan
+          path: audit-event-vulnerability-scan.json
+          retention-days: ${{ inputs.evidence-retention-days }}
 
   sbom:
     name: SBOM (PW.4)
@@ -375,7 +415,17 @@ jobs:
       - name: Emit audit event
         if: always()
         run: |
-          echo '{"event":"sbom","severity":"info","stage":"PW.4","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+          event='{"event":"sbom","severity":"info","stage":"PW.4","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+          echo "$event"
+          echo "$event" > audit-event-sbom.json
+
+      - name: Upload audit event
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: audit-event-sbom
+          path: audit-event-sbom.json
+          retention-days: ${{ inputs.evidence-retention-days }}
 
   oscal:
     name: OSCAL (M-24-15)
@@ -414,7 +464,17 @@ jobs:
       - name: Emit audit event
         if: always()
         run: |
-          echo '{"event":"oscal","severity":"info","stage":"M-24-15","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+          event='{"event":"oscal","severity":"info","stage":"M-24-15","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+          echo "$event"
+          echo "$event" > audit-event-oscal.json
+
+      - name: Upload audit event
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: audit-event-oscal
+          path: audit-event-oscal.json
+          retention-days: ${{ inputs.evidence-retention-days }}
 
   verify-evidence:
     name: Verify Evidence
@@ -453,4 +513,14 @@ jobs:
       - name: Emit audit event
         if: always()
         run: |
-          echo '{"event":"verify_evidence","severity":"info","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+          event='{"event":"verify_evidence","severity":"info","status":"'"${{ job.status }}"'","run_id":"'"${{ github.run_id }}"'","commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
+          echo "$event"
+          echo "$event" > audit-event-verify-evidence.json
+
+      - name: Upload audit event
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: audit-event-verify-evidence
+          path: audit-event-verify-evidence.json
+          retention-days: ${{ inputs.evidence-retention-days }}
