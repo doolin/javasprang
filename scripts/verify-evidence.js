@@ -17,6 +17,7 @@ const evidenceDir = path.resolve(evidenceDirArg);
 const manifestPath = path.resolve(manifestPathArg);
 
 const expected = [
+  { artifact: "gitleaks-report", file: "gitleaks-report.json" },
   { artifact: "npm-audit", file: "npm-audit.json" },
   { artifact: "trivy-results", file: "trivy-results.json" },
   { artifact: "sbom", file: "sbom.cyclonedx.json" },
