@@ -167,6 +167,8 @@ attest:
     paths:
       - ci-output/ci-artifacts.zip
       - ci-output/attestation.pdf
+      - ci-output/attestation.json
+      - ci-output/s3-receipt.json
       - ci-output/timestamp.tsr
       - ci-output/tsa-certchain.pem
 

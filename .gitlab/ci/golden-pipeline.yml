@@ -31,16 +31,32 @@ secrets-scan:
   variables:
     GIT_DEPTH: "0"           # full history scan
   script:
-    - gitleaks detect --source=. --no-banner --verbose --report-path=gitleaks-report.json --report-format=json || true
+    - gitleaks detect --source=. --no-banner --verbose --report-path=gitleaks-raw.json --report-format=json || true
     - gitleaks detect --source=. --no-banner --verbose
+    # Wrap raw output in metadata envelope (Gap 1)
+    - |
+      findings="[]"
+      if [ -f gitleaks-raw.json ] && [ -s gitleaks-raw.json ]; then
+        findings=$(cat gitleaks-raw.json)
+      fi
+      printf '{"generator":"gitleaks","generator_version":"8.22.1","timestamp":"%s","commit":"%s","ref":"%s","scan_scope":"full-history","status":"complete","findings":%s}\n' \
+        "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+        "$CI_COMMIT_SHA" \
+        "$CI_COMMIT_REF_NAME" \
+        "$findings" \
+        > gitleaks-report.json
+      rm -f gitleaks-raw.json
   after_script:
     - |
-      echo "{\"event\":\"secrets_scan\",\"severity\":\"info\",\"stage\":\"PW.6\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+      event="{\"event\":\"secrets_scan\",\"severity\":\"info\",\"stage\":\"PW.6\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+      echo "$event"
+      echo "$event" > audit-event-secrets-scan.json
   artifacts:
     <<: *artifacts-defaults
     name: "gitleaks-report-$CI_COMMIT_SHORT_SHA"
     paths:
       - gitleaks-report.json
+      - audit-event-secrets-scan.json
 
 # ---------------------------------------------------------------------
 # 2. Test (backend + frontend)
@@ -76,7 +92,9 @@ test:
     - npm test -- --watch=false --browsers=ChromeHeadlessCI --code-coverage
   after_script:
     - |
-      echo "{\"event\":\"test\",\"severity\":\"info\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+      event="{\"event\":\"test\",\"severity\":\"info\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+      echo "$event"
+      echo "$event" > audit-event-test.json
   artifacts:
     <<: *artifacts-defaults
     name: "test-reports-$CI_COMMIT_SHORT_SHA"
@@ -84,6 +102,7 @@ test:
       - target/surefire-reports/
       - target/site/jacoco/
       - $FRONTEND_DIR/coverage/
+      - audit-event-test.json
     reports:
       junit:
         - target/surefire-reports/TEST-*.xml
@@ -114,13 +133,16 @@ e2e:
     - npm run test:e2e
   after_script:
     - |
-      echo "{\"event\":\"e2e\",\"severity\":\"info\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+      event="{\"event\":\"e2e\",\"severity\":\"info\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+      echo "$event"
+      echo "$event" > audit-event-e2e.json
   artifacts:
     <<: *artifacts-defaults
     name: "playwright-$CI_COMMIT_SHORT_SHA"
     paths:
       - $FRONTEND_DIR/coverage/playwright/html-report/
       - $FRONTEND_DIR/test-results/
+      - audit-event-e2e.json
 
 # ---------------------------------------------------------------------
 # 3. Vulnerability Scan (PW.7 / PW.8)
@@ -155,13 +177,16 @@ vulnerability-scan:
     - trivy fs --format table --severity $TRIVY_SEVERITY --ignore-unfixed --ignorefile .trivyignore --exit-code 1 .
   after_script:
     - |
-      echo "{\"event\":\"vulnerability_scan\",\"severity\":\"info\",\"stage\":\"PW.7_PW.8\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+      event="{\"event\":\"vulnerability_scan\",\"severity\":\"info\",\"stage\":\"PW.7_PW.8\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+      echo "$event"
+      echo "$event" > audit-event-vulnerability-scan.json
   artifacts:
     <<: *artifacts-defaults
     name: "vuln-scan-$CI_COMMIT_SHORT_SHA"
     paths:
       - $FRONTEND_DIR/npm-audit.json
       - trivy-results.json
+      - audit-event-vulnerability-scan.json
 
 # ---------------------------------------------------------------------
 # 4. SBOM (PW.4)
@@ -189,12 +214,15 @@ sbom:
     - syft . -o cyclonedx-json=sbom.cyclonedx.json
   after_script:
     - |
-      echo "{\"event\":\"sbom\",\"severity\":\"info\",\"stage\":\"PW.4\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+      event="{\"event\":\"sbom\",\"severity\":\"info\",\"stage\":\"PW.4\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+      echo "$event"
+      echo "$event" > audit-event-sbom.json
   artifacts:
     <<: *artifacts-defaults
     name: "sbom-$CI_COMMIT_SHORT_SHA"
     paths:
       - sbom.cyclonedx.json
+      - audit-event-sbom.json
 
 # ---------------------------------------------------------------------
 # 5. OSCAL (M-24-15)
@@ -204,12 +232,15 @@ oscal:
   image: node:22-alpine
   <<: *default-rules
   needs:
+    - job: secrets-scan
+      artifacts: true
     - job: vulnerability-scan
       artifacts: true
   before_script:
     # Normalize evidence layout to match the generate-oscal.js
     # expectation (flat directory; script looks for *.json by name).
     - mkdir -p evidence
+    - cp gitleaks-report.json evidence/ 2>/dev/null || true
     - cp trivy-results.json evidence/ 2>/dev/null || true
     - cp "$FRONTEND_DIR/npm-audit.json" evidence/ 2>/dev/null || true
   script:
@@ -220,12 +251,15 @@ oscal:
       node scripts/generate-oscal.js evidence/ oscal/
   after_script:
     - |
-      echo "{\"event\":\"oscal\",\"severity\":\"info\",\"stage\":\"M-24-15\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+      event="{\"event\":\"oscal\",\"severity\":\"info\",\"stage\":\"M-24-15\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+      echo "$event"
+      echo "$event" > audit-event-oscal.json
   artifacts:
     <<: *artifacts-defaults
     name: "oscal-$CI_COMMIT_SHORT_SHA"
     paths:
       - oscal/
+      - audit-event-oscal.json
 
 # ---------------------------------------------------------------------
 # 6. Verify Evidence
@@ -235,6 +269,12 @@ verify-evidence:
   image: node:22-alpine
   <<: *default-rules
   needs:
+    - job: secrets-scan
+      artifacts: true
+    - job: test
+      artifacts: true
+    - job: e2e
+      artifacts: true
     - job: vulnerability-scan
       artifacts: true
     - job: sbom
@@ -243,10 +283,23 @@ verify-evidence:
       artifacts: true
   before_script:
     - mkdir -p evidence
+    # Security scans
+    - cp gitleaks-report.json evidence/ 2>/dev/null || true
     - cp trivy-results.json evidence/ 2>/dev/null || true
     - cp "$FRONTEND_DIR/npm-audit.json" evidence/ 2>/dev/null || true
+    # SBOM + OSCAL
     - cp sbom.cyclonedx.json evidence/ 2>/dev/null || true
     - cp -r oscal/* evidence/ 2>/dev/null || true
+    # Test results and coverage (Gaps 2 & 3)
+    - cp -r target/surefire-reports evidence/ 2>/dev/null || true
+    - cp -r target/site/jacoco evidence/jacoco-report 2>/dev/null || true
+    - cp -r "$FRONTEND_DIR/coverage" evidence/frontend-coverage 2>/dev/null || true
+    # Audit events
+    - cp audit-event-*.json evidence/ 2>/dev/null || true
+    # Pipeline definition (Gap 7)
+    - mkdir -p evidence/pipeline-definition
+    - cp .gitlab-ci.yml evidence/pipeline-definition/ 2>/dev/null || true
+    - cp .gitlab/ci/golden-pipeline.yml evidence/pipeline-definition/ 2>/dev/null || true
   script:
     - |
       COMMIT_SHA="$CI_COMMIT_SHA" \
@@ -255,9 +308,12 @@ verify-evidence:
       node scripts/verify-evidence.js evidence/ evidence-manifest.json
   after_script:
     - |
-      echo "{\"event\":\"verify_evidence\",\"severity\":\"info\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+      event="{\"event\":\"verify_evidence\",\"severity\":\"info\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+      echo "$event"
+      echo "$event" > audit-event-verify-evidence.json
   artifacts:
     <<: *artifacts-defaults
     name: "evidence-manifest-$CI_COMMIT_SHORT_SHA"
     paths:
       - evidence-manifest.json
+      - audit-event-verify-evidence.json
