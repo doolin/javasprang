@@ -1,6 +1,6 @@
 package com.todoapp.repository;
 
-import com.todoapp.config.TestConfig;
+import com.todoapp.config.TestJpaConfig;
 import com.todoapp.entity.User;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -16,7 +16,7 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 
 @DataJpaTest
-@Import(TestConfig.class)
+@Import(TestJpaConfig.class)
 @ActiveProfiles("test")
 class UserRepositoryTest {
 

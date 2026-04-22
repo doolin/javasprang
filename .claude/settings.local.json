@@ -12,7 +12,13 @@
       "Bash(python3 -c \"import sys,json; tree=json.load\\(sys.stdin\\).get\\('tree',[]\\); [print\\(t['path']\\) for t in tree if 'assessment-results' in t['path'] and t['path'].endswith\\('.json'\\)]\")",
       "Bash(python3 -c \"import sys,json; tree=json.load\\(sys.stdin\\).get\\('tree',[]\\); print\\(f'Found {len\\(tree\\)} entries'\\); [print\\(t['path']\\) for t in tree if 'assessment' in t['path']]\")",
       "Bash(git stash:*)",
-      "Bash(git checkout:*)"
+      "Bash(git checkout:*)",
+      "Bash(./mvnw -B -ntp test)",
+      "Bash(SPRING_PROFILES_ACTIVE=test ./mvnw -B -ntp test)",
+      "Bash(SPRING_PROFILES_ACTIVE=test ./mvnw -B -ntp test -Dtest=\"com.todoapp.entity.TodoTest\")",
+      "Bash(SPRING_PROFILES_ACTIVE=test ./mvnw -B -ntp test -Dtest=\"com.todoapp.entity.UserTest\")",
+      "Bash(SPRING_PROFILES_ACTIVE=test ./mvnw -B -ntp test -Dtest=\"com.todoapp.entity.*,com.todoapp.repository.*\")",
+      "Bash(SPRING_PROFILES_ACTIVE=test ./mvnw -B -ntp test -Dtest=\"com.todoapp.entity.UserTest+com.todoapp.entity.TodoTest+com.todoapp.repository.TodoRepositoryTest+com.todoapp.repository.UserRepositoryTest\")"
     ]
   }
 }

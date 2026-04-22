@@ -133,3 +133,4 @@ application-*.properties
 
 # Downloaded CI evidence snapshots (ephemeral, per-run)
 docs/compliance/artifacts/
+src/main/frontend/coverage/
