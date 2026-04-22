@@ -32,6 +32,39 @@ const expectedDirs = [
   { artifact: "frontend-coverage", dir: "frontend-coverage" },
 ];
 
+// Artifact classification for manifest metadata.
+// artifact-class: what kind of evidence this is.
+// retention-class: GRS-aligned retention tier.
+//   "permanent"   — OSCAL docs, SBOM, attestation (GRS 5.1, DAA-0567)
+//   "long-term"   — scan results, manifest, provenance (3-7 yr, GRS 3.2)
+//   "standard"    — test results, coverage, audit events (90 days, GRS 2.7)
+//   "transient"   — pipeline definition snapshots, transport archives
+const classificationRules = [
+  { pattern: /^assessment-results\.json$/, artifactClass: "oscal-assessment", retentionClass: "permanent" },
+  { pattern: /^component-definition\.json$/, artifactClass: "oscal-component", retentionClass: "permanent" },
+  { pattern: /^ssp-fragment\.json$/, artifactClass: "oscal-ssp", retentionClass: "permanent" },
+  { pattern: /^sbom\.cyclonedx\.json$/, artifactClass: "sbom", retentionClass: "permanent" },
+  { pattern: /^gitleaks-report\.json$/, artifactClass: "secrets-scan", retentionClass: "long-term" },
+  { pattern: /^npm-audit\.json$/, artifactClass: "vulnerability-scan", retentionClass: "long-term" },
+  { pattern: /^trivy-results\.json$/, artifactClass: "vulnerability-scan", retentionClass: "long-term" },
+  { pattern: /^evidence-manifest\.json$/, artifactClass: "manifest", retentionClass: "long-term" },
+  { pattern: /^audit-event-.*\.json$/, artifactClass: "audit-event", retentionClass: "standard" },
+  { pattern: /^surefire-reports\//, artifactClass: "test-results", retentionClass: "standard" },
+  { pattern: /^jacoco-report\//, artifactClass: "coverage", retentionClass: "standard" },
+  { pattern: /^frontend-coverage\//, artifactClass: "coverage", retentionClass: "standard" },
+  { pattern: /^pipeline-definition\//, artifactClass: "pipeline-definition", retentionClass: "transient" },
+];
+
+function classify(relativePath) {
+  const basename = path.basename(relativePath);
+  for (const rule of classificationRules) {
+    if (rule.pattern.test(relativePath) || rule.pattern.test(basename)) {
+      return { "artifact-class": rule.artifactClass, "retention-class": rule.retentionClass };
+    }
+  }
+  return { "artifact-class": "unclassified", "retention-class": "standard" };
+}
+
 function walk(dir) {
   const out = [];
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -54,11 +87,15 @@ if (!fs.existsSync(evidenceDir)) {
 }
 
 const files = walk(evidenceDir);
-const entries = files.map((f) => ({
-  path: path.relative(evidenceDir, f),
-  size: fs.statSync(f).size,
-  sha256: sha256(f),
-}));
+const entries = files.map((f) => {
+  const rel = path.relative(evidenceDir, f);
+  return {
+    path: rel,
+    size: fs.statSync(f).size,
+    sha256: sha256(f),
+    ...classify(rel),
+  };
+});
 
 const byName = new Set(entries.map((e) => path.basename(e.path)));
 const missing = expected.filter((x) => !byName.has(x.file));
