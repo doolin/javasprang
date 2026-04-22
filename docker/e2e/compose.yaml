@@ -1,0 +1,57 @@
+# Full-stack e2e: Postgres + Spring Boot JAR + Playwright.
+#
+# Usage:
+#   ./mvnw -B -DskipTests package
+#   docker compose -f docker/e2e/compose.yaml up --build --exit-code-from playwright
+#
+# The app container starts Spring Boot, waits for readiness, seeds
+# the database, then stays running. Playwright hits the real app
+# on port 8081 — no proxy, no dev server, same as production.
+
+services:
+  postgres:
+    build:
+      context: ../postgres
+    container_name: e2e-postgres
+    environment:
+      POSTGRES_DB: todoapp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d todoapp"]
+      interval: 2s
+      timeout: 3s
+      retries: 10
+
+  app:
+    build:
+      context: ../..
+      dockerfile: docker/e2e/Dockerfile.app
+    container_name: e2e-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/todoapp
+      SPRING_DATASOURCE_USERNAME: postgres
+      SPRING_DATASOURCE_PASSWORD: postgres
+      SPRING_JPA_HIBERNATE_DDL_AUTO: update
+      SERVER_PORT: "8081"
+      PGHOST: postgres
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:8081/login > /dev/null || exit 1"]
+      interval: 3s
+      timeout: 5s
+      retries: 30
+      start_period: 20s
+
+  playwright:
+    build:
+      context: ../..
+      dockerfile: docker/e2e/Dockerfile.playwright
+    container_name: e2e-playwright
+    depends_on:
+      app:
+        condition: service_healthy
+    environment:
+      CI: "true"

@@ -1,0 +1,11 @@
+FROM mcr.microsoft.com/playwright:v1.58.2-jammy
+RUN apt-get update -qq && apt-get install -y -qq dnsutils > /dev/null 2>&1 || true
+WORKDIR /app
+COPY src/main/frontend/package.json src/main/frontend/package-lock.json ./
+RUN npm ci --ignore-scripts
+COPY src/main/frontend/tests/ ./tests/
+COPY src/main/frontend/playwright.integration.config.ts ./
+RUN npx playwright install --with-deps chromium webkit
+COPY docker/e2e/run-tests.sh /run-tests.sh
+RUN chmod +x /run-tests.sh
+CMD ["/run-tests.sh"]
