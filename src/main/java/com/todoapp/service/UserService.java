@@ -1,6 +1,7 @@
 package com.todoapp.service;
 
 import com.todoapp.entity.User;
+import com.todoapp.exception.ResourceNotFoundException;
 import com.todoapp.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,7 +25,7 @@ public class UserService {
 
     public User findById(Long id) {
         return userRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + id));
     }
 
     public User save(User user) {

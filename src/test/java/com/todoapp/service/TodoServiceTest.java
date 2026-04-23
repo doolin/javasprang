@@ -3,6 +3,7 @@ package com.todoapp.service;
 import com.todoapp.entity.Todo;
 import com.todoapp.entity.TodoStatus;
 import com.todoapp.entity.User;
+import com.todoapp.exception.ResourceNotFoundException;
 import com.todoapp.repository.TodoRepository;
 import com.todoapp.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -81,7 +82,7 @@ class TodoServiceTest {
     void whenFindByInvalidId_thenThrowException() {
         when(todoRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThrows(RuntimeException.class, () -> todoService.findById(99L));
+        assertThrows(ResourceNotFoundException.class, () -> todoService.findById(99L));
         verify(todoRepository).findById(99L);
     }
 
@@ -201,7 +202,7 @@ class TodoServiceTest {
     @Test
     void whenFindByInvalidUserId_thenThrow() {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
-        assertThrows(RuntimeException.class, () -> todoService.findByUserId(99L));
+        assertThrows(ResourceNotFoundException.class, () -> todoService.findByUserId(99L));
     }
 
     @Test
@@ -217,7 +218,7 @@ class TodoServiceTest {
     @Test
     void whenFindByInvalidUserIdAndCompleted_thenThrow() {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
-        assertThrows(RuntimeException.class, () -> todoService.findByUserIdAndCompleted(99L, true));
+        assertThrows(ResourceNotFoundException.class, () -> todoService.findByUserIdAndCompleted(99L, true));
     }
 
     @Test

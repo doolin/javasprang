@@ -1,6 +1,7 @@
 package com.todoapp.controller;
 
 import com.todoapp.entity.User;
+import com.todoapp.exception.ResourceNotFoundException;
 import com.todoapp.service.UserService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -53,14 +54,14 @@ public class UserController {
     public ResponseEntity<User> findByUsername(@PathVariable String username) {
         return userService.findByUsername(username)
                 .map(ResponseEntity::ok)
-                .orElseThrow(() -> new RuntimeException("User not found with username: " + username));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with username: " + username));
     }
 
     @GetMapping("/email/{email}")
     public ResponseEntity<User> findByEmail(@PathVariable String email) {
         return userService.findByEmail(email)
                 .map(ResponseEntity::ok)
-                .orElseThrow(() -> new RuntimeException("User not found with email: " + email));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with email: " + email));
     }
 
     @DeleteMapping("/{id}/soft")

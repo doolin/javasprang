@@ -15,6 +15,12 @@ class ExceptionTest {
     }
 
     @Test
+    void resourceNotFoundException() {
+        ResourceNotFoundException ex = new ResourceNotFoundException("gone");
+        assertEquals("gone", ex.getMessage());
+    }
+
+    @Test
     void resourceConflictException() {
         ResourceConflictException ex = new ResourceConflictException("duplicate");
         assertEquals("duplicate", ex.getMessage());

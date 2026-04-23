@@ -3,6 +3,7 @@ package com.todoapp.service;
 import com.todoapp.entity.Todo;
 import com.todoapp.entity.TodoStatus;
 import com.todoapp.entity.User;
+import com.todoapp.exception.ResourceNotFoundException;
 import com.todoapp.repository.TodoRepository;
 import com.todoapp.repository.UserRepository;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,7 +29,7 @@ public class TodoService {
 
     public Todo findById(Long id) {
         return todoRepository.findById(id)
-                .orElseThrow(() -> new RuntimeException("Todo not found with id: " + id));
+                .orElseThrow(() -> new ResourceNotFoundException("Todo not found with id: " + id));
     }
 
     public Todo save(Todo todo) {
@@ -53,13 +54,13 @@ public class TodoService {
 
     public List<Todo> findByUserId(Long userId) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         return findByUser(user);
     }
 
     public List<Todo> findByUserIdAndCompleted(Long userId, boolean completed) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new RuntimeException("User not found with id: " + userId));
+                .orElseThrow(() -> new ResourceNotFoundException("User not found with id: " + userId));
         return findByUserAndCompleted(user, completed);
     }
 
