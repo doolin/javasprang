@@ -23,6 +23,7 @@ import java.util.HashSet;
 import java.util.Optional;
 
 import static org.hamcrest.CoreMatchers.is;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.BDDMockito.given;
 import static org.mockito.Mockito.doNothing;
@@ -138,6 +139,14 @@ class UserControllerTest {
     }
 
     @Test
+    void whenFindByUsernameNotFound_thenThrow() {
+        given(userService.findByUsername("nobody")).willReturn(Optional.empty());
+
+        assertThrows(Exception.class, () ->
+            mockMvc.perform(get("/api/v1/users/username/nobody")));
+    }
+
+    @Test
     void whenFindByEmail_thenReturnJson() throws Exception {
         given(userService.findByEmail("test@example.com")).willReturn(Optional.of(testUser));
 
@@ -148,6 +157,14 @@ class UserControllerTest {
                 .andExpect(jsonPath("$.username", is("testuser")))
                 .andExpect(jsonPath("$.email", is("test@example.com")))
                 .andExpect(jsonPath("$.password").doesNotExist());
+    }
+
+    @Test
+    void whenFindByEmailNotFound_thenThrow() {
+        given(userService.findByEmail("nobody@x.com")).willReturn(Optional.empty());
+
+        assertThrows(Exception.class, () ->
+            mockMvc.perform(get("/api/v1/users/email/nobody@x.com")));
     }
 
     @Test
