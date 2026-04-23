@@ -1,8 +1,10 @@
 package com.todoapp.service;
 
 import com.todoapp.entity.Todo;
+import com.todoapp.entity.TodoStatus;
 import com.todoapp.entity.User;
 import com.todoapp.repository.TodoRepository;
+import com.todoapp.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -16,7 +18,8 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.*;
+
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
@@ -25,6 +28,9 @@ class TodoServiceTest {
 
     @Mock
     private TodoRepository todoRepository;
+
+    @Mock
+    private UserRepository userRepository;
 
     @InjectMocks
     private TodoService todoService;
@@ -136,6 +142,82 @@ class TodoServiceTest {
         assertThat(result.isCompleted()).isTrue();
         verify(todoRepository).findById(1L);
         verify(todoRepository).save(any(Todo.class));
+    }
+
+    @Test
+    void whenSaveWithNullStatusAndNotCompleted_thenSetTodo() {
+        Todo todo = new Todo();
+        todo.setStatus(null);
+        todo.setCompleted(false);
+        when(todoRepository.save(any(Todo.class))).thenAnswer(i -> i.getArgument(0));
+
+        Todo saved = todoService.save(todo);
+        assertEquals(TodoStatus.TODO, saved.getStatus());
+        assertFalse(saved.isCompleted());
+    }
+
+    @Test
+    void whenSaveWithNullStatusAndCompleted_thenSetDone() {
+        Todo todo = new Todo();
+        todo.setStatus(null);
+        todo.setCompleted(true);
+        when(todoRepository.save(any(Todo.class))).thenAnswer(i -> i.getArgument(0));
+
+        Todo saved = todoService.save(todo);
+        assertEquals(TodoStatus.DONE, saved.getStatus());
+        assertTrue(saved.isCompleted());
+    }
+
+    @Test
+    void whenSaveWithDoneStatus_thenCompletedTrue() {
+        Todo todo = new Todo();
+        todo.setStatus(TodoStatus.DONE);
+        when(todoRepository.save(any(Todo.class))).thenAnswer(i -> i.getArgument(0));
+
+        Todo saved = todoService.save(todo);
+        assertTrue(saved.isCompleted());
+    }
+
+    @Test
+    void whenSaveWithInProgressStatus_thenCompletedFalse() {
+        Todo todo = new Todo();
+        todo.setStatus(TodoStatus.IN_PROGRESS);
+        when(todoRepository.save(any(Todo.class))).thenAnswer(i -> i.getArgument(0));
+
+        Todo saved = todoService.save(todo);
+        assertFalse(saved.isCompleted());
+    }
+
+    @Test
+    void whenFindByUserId_thenReturnTodos() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(todoRepository.findByUserAndDeletedAtIsNull(testUser))
+            .thenReturn(Arrays.asList(testTodo));
+
+        List<Todo> found = todoService.findByUserId(1L);
+        assertThat(found).hasSize(1);
+    }
+
+    @Test
+    void whenFindByInvalidUserId_thenThrow() {
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+        assertThrows(RuntimeException.class, () -> todoService.findByUserId(99L));
+    }
+
+    @Test
+    void whenFindByUserIdAndCompleted_thenReturnFiltered() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(testUser));
+        when(todoRepository.findByUserAndCompletedAndDeletedAtIsNull(testUser, true))
+            .thenReturn(Arrays.asList(testTodo));
+
+        List<Todo> found = todoService.findByUserIdAndCompleted(1L, true);
+        assertThat(found).hasSize(1);
+    }
+
+    @Test
+    void whenFindByInvalidUserIdAndCompleted_thenThrow() {
+        when(userRepository.findById(99L)).thenReturn(Optional.empty());
+        assertThrows(RuntimeException.class, () -> todoService.findByUserIdAndCompleted(99L, true));
     }
 
     @Test
