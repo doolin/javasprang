@@ -11,7 +11,11 @@
     "test:e2e": "start-server-and-test \"npm run start -- --port 4201 --host 127.0.0.1\" http://127.0.0.1:4201/login \"playwright test\"",
     "test:e2e:coverage": "start-server-and-test \"npm run start -- --port 4201 --host 127.0.0.1\" http://127.0.0.1:4201/login \"PLAYWRIGHT_JSON_OUTPUT_NAME=results.json PLAYWRIGHT_JSON_OUTPUT_DIR=coverage/playwright playwright test --reporter=list,json\"",
     "coverage:combined": "node scripts/generate-combined-coverage.mjs",
-    "test:coverage:all": "npm run test:coverage && npm run test:e2e:coverage && npm run coverage:combined"
+    "test:coverage:all": "npm run test:coverage && npm run test:e2e:coverage && npm run coverage:combined",
+    "lint": "eslint src/ --ext .ts",
+    "lint:fix": "eslint src/ --ext .ts --fix",
+    "format:check": "prettier --check \"src/**/*.{ts,html,css,json}\"",
+    "format": "prettier --write \"src/**/*.{ts,html,css,json}\""
   },
   "private": true,
   "dependencies": {
@@ -30,16 +34,26 @@
   },
   "devDependencies": {
     "@angular-devkit/build-angular": "^19.2.24",
+    "@angular-eslint/builder": "^19.8.1",
+    "@angular-eslint/eslint-plugin": "^19.8.1",
+    "@angular-eslint/eslint-plugin-template": "^19.8.1",
+    "@angular-eslint/template-parser": "^19.8.1",
     "@angular/cli": "^19.2.24",
     "@angular/compiler-cli": "^19.2.21",
     "@playwright/test": "^1.58.2",
     "@types/jasmine": "~5.1.0",
+    "@typescript-eslint/eslint-plugin": "^7.18.0",
+    "@typescript-eslint/parser": "^7.18.0",
+    "eslint": "^8.57.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
     "jasmine-core": "~5.1.0",
     "karma": "~6.4.0",
     "karma-chrome-launcher": "~3.2.0",
     "karma-coverage": "~2.2.0",
     "karma-jasmine": "~5.1.0",
     "karma-jasmine-html-reporter": "~2.1.0",
+    "prettier": "^3.8.3",
     "start-server-and-test": "^2.1.5",
     "typescript": "~5.5.4"
   }
