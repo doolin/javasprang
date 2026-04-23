@@ -139,11 +139,11 @@ class UserControllerTest {
     }
 
     @Test
-    void whenFindByUsernameNotFound_thenThrow() {
+    void whenFindByUsernameNotFound_thenReturn404() throws Exception {
         given(userService.findByUsername("nobody")).willReturn(Optional.empty());
 
-        assertThrows(Exception.class, () ->
-            mockMvc.perform(get("/api/v1/users/username/nobody")));
+        mockMvc.perform(get("/api/v1/users/username/nobody"))
+                .andExpect(status().isNotFound());
     }
 
     @Test
@@ -160,11 +160,11 @@ class UserControllerTest {
     }
 
     @Test
-    void whenFindByEmailNotFound_thenThrow() {
+    void whenFindByEmailNotFound_thenReturn404() throws Exception {
         given(userService.findByEmail("nobody@x.com")).willReturn(Optional.empty());
 
-        assertThrows(Exception.class, () ->
-            mockMvc.perform(get("/api/v1/users/email/nobody@x.com")));
+        mockMvc.perform(get("/api/v1/users/email/nobody@x.com"))
+                .andExpect(status().isNotFound());
     }
 
     @Test

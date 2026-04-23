@@ -1,6 +1,7 @@
 package com.todoapp.service;
 
 import com.todoapp.entity.User;
+import com.todoapp.exception.ResourceNotFoundException;
 import com.todoapp.repository.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -66,7 +67,7 @@ class UserServiceTest {
     void whenFindByInvalidId_thenThrowException() {
         when(userRepository.findById(99L)).thenReturn(Optional.empty());
 
-        assertThrows(RuntimeException.class, () -> userService.findById(99L));
+        assertThrows(ResourceNotFoundException.class, () -> userService.findById(99L));
         verify(userRepository).findById(99L);
     }
 
