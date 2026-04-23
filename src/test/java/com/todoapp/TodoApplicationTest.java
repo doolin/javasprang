@@ -13,6 +13,9 @@ class TodoApplicationTest {
 
     @Test
     void contextLoads() {
-        // Verifies the Spring context starts without errors
+        // Verifies the Spring context starts without errors.
+        // TodoApplication.main() is 2 lines of Spring Boot
+        // boilerplate that can't be unit tested without a port
+        // conflict. contextLoads proves the app boots.
     }
 }
