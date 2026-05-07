@@ -6,114 +6,117 @@ import { User } from '../core/services/auth.service';
 import { BackendUser, TodoItem, TodoService, TodoStatus } from '../core/services/todo.service';
 
 @Component({
-    selector: 'app-home',
-    template: `
-    <div class="kanban-page" *ngIf="currentUser; else loggedOut">
-      <div class="kanban-header">
-        <div>
-          <h2 class="mb-1">Kanban Board</h2>
-          <p class="text-muted mb-0">
-            Signed in as <strong>{{ currentUser.username }}</strong>
-          </p>
+  selector: 'app-home',
+  template: `
+    @if (currentUser) {
+      <div class="kanban-page">
+        <div class="kanban-header">
+          <div>
+            <h2 class="mb-1">Kanban Board</h2>
+            <p class="text-muted mb-0">
+              Signed in as <strong>{{ currentUser.username }}</strong>
+            </p>
+          </div>
+          <button type="button" class="btn btn-outline-secondary" (click)="logout()">Logout</button>
         </div>
-        <button type="button" class="btn btn-outline-secondary" (click)="logout()">Logout</button>
-      </div>
-
-      <div class="alert alert-danger" *ngIf="error">
-        {{ error }}
-      </div>
-
-      <form class="new-card-form" [formGroup]="newTodoForm" (ngSubmit)="createTodo()">
-        <input
-          type="text"
-          class="form-control"
-          formControlName="title"
-          placeholder="New task title"
-        >
-        <input
-          type="text"
-          class="form-control"
-          formControlName="description"
-          placeholder="Description (optional)"
-        >
-        <select class="form-select" formControlName="status">
-          <option value="TODO">To Do</option>
-          <option value="IN_PROGRESS">In Progress</option>
-          <option value="DONE">Done</option>
-        </select>
-        <button type="submit" class="btn btn-primary" [disabled]="newTodoForm.invalid || loading">
-          Add
-        </button>
-      </form>
-
-      <div class="kanban-grid" *ngIf="!loading; else loadingState">
-        <section class="kanban-column">
-          <h3>To Do</h3>
-          <div class="kanban-card" *ngFor="let todo of todosByStatus('TODO')">
-            <h4>{{ todo.title }}</h4>
-            <p *ngIf="todo.description" class="text-muted">{{ todo.description }}</p>
-            <div class="card-controls">
-              <select
-                class="form-select form-select-sm"
-                [value]="todo.status"
-                (change)="updateStatus(todo, $any($event.target).value)"
-              >
-                <option value="TODO">To Do</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="DONE">Done</option>
-              </select>
-              <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteTodo(todo)">Delete</button>
-            </div>
+        @if (error) {
+          <div class="alert alert-danger">
+            {{ error }}
           </div>
-        </section>
-
-        <section class="kanban-column">
-          <h3>In Progress</h3>
-          <div class="kanban-card" *ngFor="let todo of todosByStatus('IN_PROGRESS')">
-            <h4>{{ todo.title }}</h4>
-            <p *ngIf="todo.description" class="text-muted">{{ todo.description }}</p>
-            <div class="card-controls">
-              <select
-                class="form-select form-select-sm"
-                [value]="todo.status"
-                (change)="updateStatus(todo, $any($event.target).value)"
-              >
-                <option value="TODO">To Do</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="DONE">Done</option>
-              </select>
-              <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteTodo(todo)">Delete</button>
-            </div>
+        }
+        <form class="new-card-form" [formGroup]="newTodoForm" (ngSubmit)="createTodo()">
+          <input type="text" class="form-control" formControlName="title" placeholder="New task title" />
+          <input type="text" class="form-control" formControlName="description" placeholder="Description (optional)" />
+          <select class="form-select" formControlName="status">
+            <option value="TODO">To Do</option>
+            <option value="IN_PROGRESS">In Progress</option>
+            <option value="DONE">Done</option>
+          </select>
+          <button type="submit" class="btn btn-primary" [disabled]="newTodoForm.invalid || loading">Add</button>
+        </form>
+        @if (!loading) {
+          <div class="kanban-grid">
+            <section class="kanban-column">
+              <h3>To Do</h3>
+              @for (todo of todosByStatus('TODO'); track todo) {
+                <div class="kanban-card">
+                  <h4>{{ todo.title }}</h4>
+                  @if (todo.description) {
+                    <p class="text-muted">{{ todo.description }}</p>
+                  }
+                  <div class="card-controls">
+                    <select
+                      class="form-select form-select-sm"
+                      [value]="todo.status"
+                      (change)="updateStatus(todo, $any($event.target).value)"
+                    >
+                      <option value="TODO">To Do</option>
+                      <option value="IN_PROGRESS">In Progress</option>
+                      <option value="DONE">Done</option>
+                    </select>
+                    <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteTodo(todo)">
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              }
+            </section>
+            <section class="kanban-column">
+              <h3>In Progress</h3>
+              @for (todo of todosByStatus('IN_PROGRESS'); track todo) {
+                <div class="kanban-card">
+                  <h4>{{ todo.title }}</h4>
+                  @if (todo.description) {
+                    <p class="text-muted">{{ todo.description }}</p>
+                  }
+                  <div class="card-controls">
+                    <select
+                      class="form-select form-select-sm"
+                      [value]="todo.status"
+                      (change)="updateStatus(todo, $any($event.target).value)"
+                    >
+                      <option value="TODO">To Do</option>
+                      <option value="IN_PROGRESS">In Progress</option>
+                      <option value="DONE">Done</option>
+                    </select>
+                    <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteTodo(todo)">
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              }
+            </section>
+            <section class="kanban-column">
+              <h3>Done</h3>
+              @for (todo of todosByStatus('DONE'); track todo) {
+                <div class="kanban-card">
+                  <h4>{{ todo.title }}</h4>
+                  @if (todo.description) {
+                    <p class="text-muted">{{ todo.description }}</p>
+                  }
+                  <div class="card-controls">
+                    <select
+                      class="form-select form-select-sm"
+                      [value]="todo.status"
+                      (change)="updateStatus(todo, $any($event.target).value)"
+                    >
+                      <option value="TODO">To Do</option>
+                      <option value="IN_PROGRESS">In Progress</option>
+                      <option value="DONE">Done</option>
+                    </select>
+                    <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteTodo(todo)">
+                      Delete
+                    </button>
+                  </div>
+                </div>
+              }
+            </section>
           </div>
-        </section>
-
-        <section class="kanban-column">
-          <h3>Done</h3>
-          <div class="kanban-card" *ngFor="let todo of todosByStatus('DONE')">
-            <h4>{{ todo.title }}</h4>
-            <p *ngIf="todo.description" class="text-muted">{{ todo.description }}</p>
-            <div class="card-controls">
-              <select
-                class="form-select form-select-sm"
-                [value]="todo.status"
-                (change)="updateStatus(todo, $any($event.target).value)"
-              >
-                <option value="TODO">To Do</option>
-                <option value="IN_PROGRESS">In Progress</option>
-                <option value="DONE">Done</option>
-              </select>
-              <button type="button" class="btn btn-sm btn-outline-danger" (click)="deleteTodo(todo)">Delete</button>
-            </div>
-          </div>
-        </section>
+        } @else {
+          <p class="text-muted">Loading board...</p>
+        }
       </div>
-
-      <ng-template #loadingState>
-        <p class="text-muted">Loading board...</p>
-      </ng-template>
-    </div>
-
-    <ng-template #loggedOut>
+    } @else {
       <div class="auth-container text-center">
         <h2 class="mb-3">Not signed in</h2>
         <p class="text-muted mb-4">Use the links below to log in or register.</p>
@@ -122,10 +125,10 @@ import { BackendUser, TodoItem, TodoService, TodoStatus } from '../core/services
           <a routerLink="/register" class="btn btn-outline-primary">Go to Register</a>
         </div>
       </div>
-    </ng-template>
+    }
   `,
-    styles: [
-        `
+  styles: [
+    `
       .kanban-page {
         display: grid;
         gap: 1rem;
@@ -197,8 +200,8 @@ import { BackendUser, TodoItem, TodoService, TodoStatus } from '../core/services
         }
       }
     `
-    ],
-    standalone: false
+  ],
+  standalone: false
 })
 export class HomeComponent {
   currentUser: User | null = null;
@@ -218,7 +221,7 @@ export class HomeComponent {
     private formBuilder: FormBuilder,
     private router: Router
   ) {
-    this.authService.currentUser$.subscribe(user => {
+    this.authService.currentUser$.subscribe((user) => {
       this.currentUser = user;
       if (user?.username) {
         this.loadBoard(user.username);
@@ -230,7 +233,7 @@ export class HomeComponent {
   }
 
   todosByStatus(status: TodoStatus): TodoItem[] {
-    return this.todos.filter(todo => todo.status === status);
+    return this.todos.filter((todo) => todo.status === status);
   }
 
   private normalizeTodo(todo: TodoItem): TodoItem {
@@ -261,7 +264,7 @@ export class HomeComponent {
     }
 
     this.todoService.createTodo(payload).subscribe({
-      next: todo => {
+      next: (todo) => {
         this.todos = [...this.todos, this.normalizeTodo(todo)];
         this.newTodoForm.reset({ title: '', description: '', status: 'TODO' });
         this.error = '';
@@ -280,9 +283,9 @@ export class HomeComponent {
     };
 
     this.todoService.updateTodo(updated).subscribe({
-      next: saved => {
+      next: (saved) => {
         const normalized = this.normalizeTodo(saved);
-        this.todos = this.todos.map(item => item.id === saved.id ? normalized : item);
+        this.todos = this.todos.map((item) => (item.id === saved.id ? normalized : item));
       },
       error: () => {
         this.error = 'Unable to update todo status.';
@@ -297,7 +300,7 @@ export class HomeComponent {
 
     this.todoService.deleteTodo(todo.id).subscribe({
       next: () => {
-        this.todos = this.todos.filter(item => item.id !== todo.id);
+        this.todos = this.todos.filter((item) => item.id !== todo.id);
       },
       error: () => {
         this.error = 'Unable to delete todo.';
@@ -308,11 +311,11 @@ export class HomeComponent {
   private loadBoard(username: string): void {
     this.loading = true;
     this.todoService.getUserByUsername(username).subscribe({
-      next: user => {
+      next: (user) => {
         this.backendUser = user;
         this.todoService.getTodosByUserId(user.id).subscribe({
-          next: todos => {
-            this.todos = todos.map(todo => this.normalizeTodo(todo));
+          next: (todos) => {
+            this.todos = todos.map((todo) => this.normalizeTodo(todo));
             this.error = '';
             this.loading = false;
           },
