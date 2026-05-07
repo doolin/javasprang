@@ -1,0 +1,99 @@
+From d26bbf662accb85f84c39cbe7309fa463a32864e Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 7 May 2026 21:07:51 +0000
+Subject: [PATCH] Pitfalls: parse-time caller permissions + branches: filter
+ trap
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Two related Pitfalls additions, both surfaced while wiring the
+javasprang Golden Pipeline:
+
+1. "Caller permissions are validated at parse time" — when a
+   reusable workflow's nested job declares permissions exceeding
+   the caller's bounds, the entire run aborts at startup, even
+   when the demanding job is if:-skipped for this run. GitHub
+   validates at parse time, not runtime. Common trip wire when
+   adding pr-summary / publish-pages / attestation jobs.
+
+2. "branches: filter and the default-branch name" — a
+   `pull_request: branches: [main]` filter on a repo whose default
+   is master (or anything else) makes the pull_request event never
+   fire on PRs. PR runs still happen via the push event for the
+   head branch, but github.event.pull_request.* is empty and any
+   `if: github.event_name == 'pull_request'` gate skips silently.
+
+Both anecdotes from the same project; either trips up first-time
+wiring of newer compliance jobs.
+---
+ skills/cicd-golden-pipeline/SKILL.md | 53 ++++++++++++++++++++++++++++
+ 1 file changed, 53 insertions(+)
+
+diff --git a/skills/cicd-golden-pipeline/SKILL.md b/skills/cicd-golden-pipeline/SKILL.md
+index 7f631e5..c15bb1c 100644
+--- a/skills/cicd-golden-pipeline/SKILL.md
++++ b/skills/cicd-golden-pipeline/SKILL.md
+@@ -575,6 +575,59 @@ pattern works for surefire reports on the test job — parse
+ `target/surefire-reports/*.txt` into a failed-class listing on
+ `if: failure()`.
+ 
++### Caller permissions are validated at parse time
++
++A reusable workflow (`workflow_call`) declares per-job `permissions:`
++blocks. The caller then has to declare a permission set that
++**bounds** every nested job's request. If a nested job asks for
++`pull-requests: write` but the caller only granted `pull-requests:
++none` (or didn't declare it at all), the **entire run fails at
++startup** — before any job runs — with a message like:
++
++> The nested job 'pr-summary' is requesting 'pull-requests: write',
++> but is only allowed 'pull-requests: none'.
++
++The trap: this happens **even when the demanding job is `if:`-skipped
++on this run.** GitHub validates permission bounds at workflow parse
++time, not runtime. A PR-only job gated `if: github.event_name ==
++'pull_request'` will still gate the master-push run if its declared
++permissions exceed the caller's bounds.
++
++When you add a job to a reusable workflow that needs elevated
++permissions (`pr-summary` posting comments, `publish-pr-reports`
++writing to `gh-pages`, anything attesting), update **both** the
++top-level caller `permissions:` block and the calling job's
++`permissions:` block to include the union of every nested job's
++needs. Add an in-file comment so future additions don't trip the
++same wire.
++
++### `branches:` filter and the default-branch name
++
++A common copy-pasted CI snippet:
++
++```yaml
++on:
++  push:
++  pull_request:
++    branches: [main]
++```
++
++That `branches: [main]` filter only matches PRs whose **base** branch
++is literally `main`. If the repo's default branch is `master` (or
++anything else), the `pull_request` event never fires — PRs still
++trigger CI, but only via the `push` event for the head branch.
++
++Symptoms:
++- `${{ github.event.pull_request.* }}` expressions are empty in PR
++  runs — they require the `pull_request` event context.
++- Jobs gated `if: github.event_name == 'pull_request'` never run on
++  PRs (because the actual event is `push`).
++- PR comment / sticky-summary jobs silently skip on every PR.
++
++Fix: change the filter to match the repo's default (`[master]`) or
++remove the filter entirely so the trigger fires on PRs to any base.
++Verify with `echo "${{ github.event_name }}"` in a debug step.
++
+ ## Adapting for non-Node.js projects
+ 
+ The golden pipeline is Node.js-oriented but the structure adapts:
+-- 
+2.43.0
+

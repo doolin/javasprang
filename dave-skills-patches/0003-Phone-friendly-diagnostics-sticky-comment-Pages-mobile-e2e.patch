@@ -1,0 +1,226 @@
+From 7463240557886a3d4b27f87238d185076551ed87 Mon Sep 17 00:00:00 2001
+From: Claude <noreply@anthropic.com>
+Date: Thu, 7 May 2026 21:09:19 +0000
+Subject: [PATCH] Add "Phone-friendly diagnostics" section: sticky comment +
+ Pages + mobile e2e
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Three composable patterns that close the "everything's behind a
+desktop log drill-down" gap for reviewers working from a phone.
+Each is independently adoptable; together they make the pipeline's
+output scannable from a mobile GitHub session.
+
+1. Sticky PR-summary comment: pr-summary job runs after every other
+   compliance job (if: always()), downloads all artifacts, parses
+   them into one phone-readable markdown table, and upserts a
+   sticky comment via marocchino/sticky-pull-request-comment with
+   header: pr-summary. Single comment per PR, edited in place.
+
+2. Per-PR HTML reports on GitHub Pages: publish-pr-reports job runs
+   after test + e2e on PRs only, stages JaCoCo + frontend-coverage
+   + Playwright HTML under pr/<N>/ on a gh-pages branch via
+   peaceiris/actions-gh-pages with keep_files: true so parallel
+   PRs coexist. One-time Pages-source toggle required.
+
+3. Mobile-viewport e2e: pair Desktop Chrome with iPhone 14 Pro
+   (WebKit) projects in playwright.config; install both chromium
+   and webkit browsers. Failure screenshots / video / trace
+   become artifacts and are surfaced via the Pages publish in
+   pattern (2). Catches mobile-layout regressions that aren't
+   visible to reviewers without a desktop.
+
+The three compose: pr-summary's "Reports:" line links into the
+gh-pages site, and the gh-pages site renders the mobile e2e
+screenshots — so a red ✗ on a phone-only reviewer's PR becomes one
+tap to a screenshot of the failing iPhone 14 Pro spec.
+
+Cross-references the existing "Findings visible only to desktop
+reviewers" Pitfall entry (which introduces $GITHUB_STEP_SUMMARY);
+the sticky-comment pattern reuses the same markdown body for both
+the step summary and the comment.
+---
+ skills/cicd-golden-pipeline/SKILL.md | 166 +++++++++++++++++++++++++++
+ 1 file changed, 166 insertions(+)
+
+diff --git a/skills/cicd-golden-pipeline/SKILL.md b/skills/cicd-golden-pipeline/SKILL.md
+index 7f631e5..1e1f1f0 100644
+--- a/skills/cicd-golden-pipeline/SKILL.md
++++ b/skills/cicd-golden-pipeline/SKILL.md
+@@ -575,6 +575,172 @@ pattern works for surefire reports on the test job — parse
+ `target/surefire-reports/*.txt` into a failed-class listing on
+ `if: failure()`.
+ 
++## Phone-friendly diagnostics
++
++The compliance evidence the pipeline produces is rich, but its
++default UX is a desktop log drill-down: open the Actions tab, click
++the run, click a job, expand the failed step, scroll for the
++`##[error]` line. A reviewer working from a phone can see the red ✗
++and almost nothing else actionable.
++
++Three add-on patterns close that gap. They compose; each can be
++adopted independently.
++
++### Sticky PR-summary comment
++
++A `pr-summary` job runs after the rest of the pipeline, downloads
++every artifact, parses the structured ones (Surefire `.txt`
++summaries, JaCoCo `jacoco.xml`, frontend coverage JSON,
++`trivy-results.json`, `npm-audit.json`, `gitleaks-report.json`,
++`evidence-manifest.json`, Playwright `test-results/`), and
++**upserts a single sticky comment** on the PR via
++`marocchino/sticky-pull-request-comment` with `header: pr-summary`.
++
++Comment shape (top-line first, table next, links last) keeps it
++readable on a phone:
++
++```markdown
++**Status:** ✅ all signals green · `abc1234`
++
++| Signal | Value |
++| --- | --- |
++| Backend tests (Surefire) | ✅ 80 run, 0 failed |
++| JaCoCo line / branch | 11.2% / 1.8% |
++| E2E (Playwright) | ✅ 0 failed spec(s) |
++| Trivy findings | ✅ 0 (none) |
++| npm audit (production) | ✅ 0 |
++| Gitleaks | ✅ 0 finding(s) |
++| Evidence manifest | ✅ 10 artifact(s); 0 missing |
++```
++
++Job sketch:
++
++```yaml
++pr-summary:
++  if: always() && github.event_name == 'pull_request'
++  needs: [secrets-scan, test, e2e, vulnerability-scan, sbom, oscal,
++          verify-evidence]
++  permissions:
++    contents: read
++    pull-requests: write
++  steps:
++    - uses: actions/checkout@<sha>
++    - uses: actions/setup-node@<sha>
++    - uses: actions/download-artifact@<sha>
++      with:
++        path: evidence/
++    - run: node scripts/pr-summary.mjs evidence/ > pr-summary.md
++    - run: cat pr-summary.md >> "$GITHUB_STEP_SUMMARY"
++    - uses: marocchino/sticky-pull-request-comment@<sha>
++      with:
++        header: pr-summary
++        path: pr-summary.md
++```
++
++`if: always()` is non-negotiable — the comment must produce signal
++even when upstream jobs fail. The summary script must fall back to
++"—" rather than abort when an artifact is missing.
++
++### Per-PR HTML reports on GitHub Pages
++
++Each PR gets a stable, mobile-Safari-browsable URL hosting the
++rendered report HTML:
++
++```
++https://<owner>.github.io/<repo>/pr/<N>/
++  ├── jacoco/             — JaCoCo backend coverage
++  ├── frontend-coverage/  — Karma + Istanbul
++  ├── playwright/         — Playwright HTML report
++  └── index.html          — landing page with three sub-links
++```
++
++Implementation: a `publish-pr-reports` job runs after `test` + `e2e`
++(PR-only), downloads the three HTML artifact dirs, stages them under
++`pr/<N>/{jacoco,frontend-coverage,playwright}/` plus a small
++`index.html`, and pushes to a `gh-pages` branch via
++`peaceiris/actions-gh-pages`. `keep_files: true` preserves other
++open PRs' subtrees on the same branch.
++
++```yaml
++publish-pr-reports:
++  if: github.event_name == 'pull_request'
++  needs: [test, e2e]
++  permissions:
++    contents: write
++  steps:
++    - uses: actions/checkout@<sha>
++    - uses: actions/download-artifact@<sha>
++      with:
++        path: incoming/
++        pattern: '{jacoco-report,frontend-coverage,playwright-html-report}'
++    - name: Stage under pr/<N>/
++      run: |
++        dest="pr-reports/pr/${{ github.event.pull_request.number }}"
++        mkdir -p "$dest"
++        cp -r incoming/jacoco-report "$dest/jacoco" || true
++        cp -r incoming/frontend-coverage "$dest/frontend-coverage" || true
++        cp -r incoming/playwright-html-report "$dest/playwright" || true
++        # write a tiny index.html linking the three subdirs
++    - uses: peaceiris/actions-gh-pages@<sha>
++      with:
++        github_token: ${{ secrets.GITHUB_TOKEN }}
++        publish_dir: pr-reports/
++        publish_branch: gh-pages
++        keep_files: true
++```
++
++Combine with the sticky comment from the previous section: the
++`pr-summary` job picks up `needs.publish-pr-reports.result` and
++appends a "Reports:" line to the comment with three direct
++`https://<owner>.github.io/<repo>/pr/<N>/...` links. A reviewer on a
++phone taps from the PR comment into the rendered HTML — no log
++drill-down, no artifact download.
++
++One-time repo setup: **Settings → Pages → Source: Deploy from a
++branch → `gh-pages` → `/ (root)`**. The branch is created by the
++first PR run; Pages serving has to be toggled on manually.
++
++Stale `pr/<N>/` subtrees aren't auto-cleaned on PR close — wire a
++small `pull_request: closed` workflow that removes the directory if
++you care about long-term gh-pages hygiene.
++
++### Mobile-viewport e2e
++
++If the project ships a UI, run the existing Playwright suite under
++**both** desktop and mobile-device emulation. Catches mobile-layout
++regressions that aren't visible to a reviewer who only has a phone.
++
++```ts
++// playwright.config.ts
++import { defineConfig, devices } from '@playwright/test';
++
++export default defineConfig({
++  use: {
++    screenshot: 'only-on-failure',
++    video: 'retain-on-failure',
++    trace: 'retain-on-failure',
++  },
++  projects: [
++    { name: 'chromium',     use: { ...devices['Desktop Chrome'] } },
++    { name: 'mobile-safari', use: { ...devices['iPhone 14 Pro'] } },
++  ],
++});
++```
++
++iPhone device profiles default to **WebKit**, not Chromium, so the
++CI step has to install both browsers:
++
++```yaml
++- run: npx playwright install --with-deps chromium webkit
++- run: npm run test:e2e
++```
++
++Failure artifacts (screenshots, video, trace) are uploaded with the
++HTML report and surfaced via the per-PR Pages publish from the
++previous section. A failed mobile-safari test on a phone-only
++reviewer's PR now shows up as: red ✗ in the sticky comment → tap
++"Playwright" link → see the failing-spec screenshot inline.
++
+ ## Adapting for non-Node.js projects
+ 
+ The golden pipeline is Node.js-oriented but the structure adapts:
+-- 
+2.43.0
+
