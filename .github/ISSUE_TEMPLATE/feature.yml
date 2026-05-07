@@ -1,0 +1,58 @@
+name: Feature request
+description: New capability for users or the platform
+title: "Feature: "
+labels:
+  - kind/feature
+  - status/needs-triage
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user need or system gap motivates this?
+    validations:
+      required: true
+  - type: textarea
+    id: proposed-solution
+    attributes:
+      label: Proposed solution
+      description: How should it work? Sketch is fine.
+    validations:
+      required: true
+  - type: textarea
+    id: acceptance-criteria
+    attributes:
+      label: Acceptance criteria
+      description: How do we know we're done? Bullet list.
+      placeholder: |
+        - [ ] ...
+        - [ ] ...
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Code/system area
+      options:
+        - backend
+        - frontend
+        - ci
+        - compliance
+        - security
+        - deps
+        - docs
+        - infra
+        - "(unsure)"
+    validations:
+      required: true
+  - type: dropdown
+    id: domain
+    attributes:
+      label: Domain (if user-facing)
+      options:
+        - auth
+        - todo
+        - kanban
+        - evidence
+        - attestation
+        - n/a

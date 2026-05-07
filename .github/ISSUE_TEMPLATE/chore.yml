@@ -1,0 +1,29 @@
+name: Chore
+description: Housekeeping that doesn't change behavior (deps, build, refactor)
+title: "Chore: "
+labels:
+  - kind/chore
+  - status/needs-triage
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What needs doing?
+    validations:
+      required: true
+  - type: dropdown
+    id: area
+    attributes:
+      label: Code/system area
+      options:
+        - backend
+        - frontend
+        - ci
+        - compliance
+        - security
+        - deps
+        - docs
+        - infra
+        - "(unsure)"
+    validations:
+      required: true

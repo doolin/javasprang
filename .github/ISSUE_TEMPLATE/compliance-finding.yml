@@ -1,0 +1,90 @@
+name: Compliance finding
+description: Track a CVE, control gap, or audit observation through to closure
+title: "Compliance: "
+labels:
+  - kind/compliance
+  - status/needs-triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for findings that need a tracked decision —
+        not for transient pipeline output (those live in CI logs and
+        evidence artifacts) and not for suppressed CVEs (those live in
+        `.trivyignore` with their justification + removal condition).
+  - type: dropdown
+    id: source
+    attributes:
+      label: Finding source
+      options:
+        - trivy
+        - npm-audit
+        - gitleaks
+        - oscal-assessment
+        - external-audit
+        - manual-review
+        - other
+    validations:
+      required: true
+  - type: input
+    id: external-id
+    attributes:
+      label: CVE or control ID (if any)
+      placeholder: "CVE-2026-22732 or NIST AC-2"
+  - type: dropdown
+    id: severity
+    attributes:
+      label: Severity
+      options:
+        - critical
+        - high
+        - medium
+        - low
+        - n/a
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: What is the finding? Where does it surface?
+    validations:
+      required: true
+  - type: dropdown
+    id: decision
+    attributes:
+      label: Decision
+      options:
+        - remediate (will fix in this ticket)
+        - suppress-with-justification (.trivyignore-style)
+        - defer (track for later remediation)
+        - accept-risk (document and close)
+    validations:
+      required: true
+  - type: textarea
+    id: justification
+    attributes:
+      label: Justification
+      description: Required for suppress / defer / accept-risk. Why is this the right call?
+  - type: textarea
+    id: removal-condition
+    attributes:
+      label: Removal / re-evaluation condition
+      description: If suppress or defer, what change would let us close this gap?
+      placeholder: "e.g. Spring Boot 3 migration; vendor patch; framework version bump"
+  - type: dropdown
+    id: control-mapping
+    attributes:
+      label: Compliance control (apply matching label after creation)
+      options:
+        - "ssdf-pw.4 (SBOM)"
+        - "ssdf-pw.6 (secrets scan)"
+        - "ssdf-pw.7 (vuln scan, source)"
+        - "ssdf-pw.8 (vuln scan, executable)"
+        - "ssdf-ps.1 (provenance)"
+        - "ssdf-ps.2 (verification)"
+        - "m-21-31 (logging)"
+        - "m-22-18 (self-attestation)"
+        - "m-24-15 (OSCAL)"
+        - "eo-14028 (supply chain)"
+        - "n/a"

@@ -1,0 +1,64 @@
+name: Bug report
+description: Something is broken
+title: "Bug: "
+labels:
+  - kind/bug
+  - status/needs-triage
+body:
+  - type: textarea
+    id: description
+    attributes:
+      label: What's broken?
+      description: One- or two-sentence summary.
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. ...
+        2. ...
+        3. ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      description: Browser / OS / commit SHA / CI run if applicable
+      placeholder: "iOS Safari 18.2; commit abc1234"
+  - type: input
+    id: run-url
+    attributes:
+      label: Related CI run URL (optional)
+      placeholder: "https://github.com/doolin/javasprang/actions/runs/..."
+  - type: dropdown
+    id: area
+    attributes:
+      label: Code/system area
+      description: Best-guess; will be retagged in triage.
+      options:
+        - backend
+        - frontend
+        - ci
+        - compliance
+        - security
+        - deps
+        - docs
+        - infra
+        - "(unsure)"
+    validations:
+      required: true
