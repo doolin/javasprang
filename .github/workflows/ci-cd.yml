@@ -13,10 +13,11 @@ on:
     branches: [main]
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
   attestations: write
   security-events: write
+  pull-requests: write
 
 jobs:
   compliance:
@@ -31,10 +32,18 @@ jobs:
       # the baseline is clean.
       trivy-severity: "CRITICAL"
     permissions:
-      contents: read
+      # Caller bounds: must include the union of permissions any nested
+      # job in golden-pipeline.yml requests, even for jobs gated `if:`
+      # off on this run — GitHub validates at workflow parse time, not
+      # runtime. publish-pr-reports needs contents:write (push to
+      # gh-pages); pr-summary needs pull-requests:write (sticky PR
+      # comment). Both are gated to PR events but their permission
+      # blocks must still fit here.
+      contents: write
       id-token: write
       attestations: write
       security-events: write
+      pull-requests: write
     secrets: inherit
 
   package:
