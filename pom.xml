@@ -20,8 +20,7 @@
     <properties>
         <java.version>17</java.version>
         <jwt.version>0.11.5</jwt.version>
-        <testcontainers.version>1.19.3</testcontainers.version>
-
+        <testcontainers.version>1.21.4</testcontainers.version>
 
         <!-- CVE remediation: override Spring Boot 2.7.18 BOM-pinned
              transitive versions with the latest patched releases in
