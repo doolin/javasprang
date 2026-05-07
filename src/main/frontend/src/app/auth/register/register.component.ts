@@ -4,8 +4,8 @@ import { Router } from '@angular/router';
 import { AuthService } from '../../core/services/auth.service';
 
 @Component({
-    selector: 'app-register',
-    template: `
+  selector: 'app-register',
+  template: `
     <div class="auth-container">
       <h2 class="text-center mb-4">Register</h2>
       <form [formGroup]="registerForm" (ngSubmit)="onSubmit()">
@@ -17,10 +17,14 @@ import { AuthService } from '../../core/services/auth.service';
             id="username"
             formControlName="username"
             [class.is-invalid]="username.invalid && (username.dirty || username.touched)"
-          >
-          <div class="invalid-feedback" *ngIf="username.invalid && (username.dirty || username.touched)">
-            <div *ngIf="username.errors?.['required']">Username is required.</div>
-          </div>
+          />
+          @if (username.invalid && (username.dirty || username.touched)) {
+            <div class="invalid-feedback">
+              @if (username.errors?.['required']) {
+                <div>Username is required.</div>
+              }
+            </div>
+          }
         </div>
 
         <div class="form-group">
@@ -31,11 +35,17 @@ import { AuthService } from '../../core/services/auth.service';
             id="email"
             formControlName="email"
             [class.is-invalid]="email.invalid && (email.dirty || email.touched)"
-          >
-          <div class="invalid-feedback" *ngIf="email.invalid && (email.dirty || email.touched)">
-            <div *ngIf="email.errors?.['required']">Email is required.</div>
-            <div *ngIf="email.errors?.['email']">Please enter a valid email address.</div>
-          </div>
+          />
+          @if (email.invalid && (email.dirty || email.touched)) {
+            <div class="invalid-feedback">
+              @if (email.errors?.['required']) {
+                <div>Email is required.</div>
+              }
+              @if (email.errors?.['email']) {
+                <div>Please enter a valid email address.</div>
+              }
+            </div>
+          }
         </div>
 
         <div class="form-group">
@@ -46,20 +56,26 @@ import { AuthService } from '../../core/services/auth.service';
             id="password"
             formControlName="password"
             [class.is-invalid]="password.invalid && (password.dirty || password.touched)"
-          >
-          <div class="invalid-feedback" *ngIf="password.invalid && (password.dirty || password.touched)">
-            <div *ngIf="password.errors?.['required']">Password is required.</div>
-            <div *ngIf="password.errors?.['minlength']">Password must be at least 6 characters.</div>
+          />
+          @if (password.invalid && (password.dirty || password.touched)) {
+            <div class="invalid-feedback">
+              @if (password.errors?.['required']) {
+                <div>Password is required.</div>
+              }
+              @if (password.errors?.['minlength']) {
+                <div>Password must be at least 6 characters.</div>
+              }
+            </div>
+          }
+        </div>
+
+        @if (error) {
+          <div class="alert alert-danger">
+            {{ error }}
           </div>
-        </div>
+        }
 
-        <div class="alert alert-danger" *ngIf="error">
-          {{ error }}
-        </div>
-
-        <button type="submit" class="btn btn-primary w-100" [disabled]="registerForm.invalid">
-          Register
-        </button>
+        <button type="submit" class="btn btn-primary w-100" [disabled]="registerForm.invalid">Register</button>
 
         <div class="text-center mt-3">
           <a routerLink="/login">Already have an account? Login</a>
@@ -67,7 +83,7 @@ import { AuthService } from '../../core/services/auth.service';
       </form>
     </div>
   `,
-    standalone: false
+  standalone: false
 })
 export class RegisterComponent {
   registerForm: FormGroup;
@@ -85,21 +101,26 @@ export class RegisterComponent {
     });
   }
 
-  get username() { return this.registerForm.get('username')!; }
-  get email() { return this.registerForm.get('email')!; }
-  get password() { return this.registerForm.get('password')!; }
+  get username() {
+    return this.registerForm.get('username')!;
+  }
+  get email() {
+    return this.registerForm.get('email')!;
+  }
+  get password() {
+    return this.registerForm.get('password')!;
+  }
 
   onSubmit(): void {
     if (this.registerForm.valid) {
-      this.authService.register(this.username.value, this.email.value, this.password.value)
-        .subscribe({
-          next: () => {
-            this.router.navigate(['/']);
-          },
-          error: (err) => {
-            this.error = err.error.message || 'An error occurred during registration';
-          }
-        });
+      this.authService.register(this.username.value, this.email.value, this.password.value).subscribe({
+        next: () => {
+          this.router.navigate(['/']);
+        },
+        error: (err) => {
+          this.error = err.error.message || 'An error occurred during registration';
+        }
+      });
     }
   }
-} 
+}
