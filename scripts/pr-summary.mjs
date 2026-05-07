@@ -350,6 +350,25 @@ if (runUrl) {
   sections.push("");
 }
 
+// --- Per-PR Pages report links ----------------------------------------------
+
+const prNumber = process.env.PR_NUMBER;
+const pagesBase = (process.env.PAGES_BASE_URL || "").replace(/\/+$/, "");
+const publishResult = process.env.PUBLISH_PR_REPORTS_RESULT || "";
+
+if (prNumber && pagesBase && publishResult === "success") {
+  const root = `${pagesBase}/pr/${prNumber}`;
+  sections.push(
+    `**Reports:** [JaCoCo](${root}/jacoco/) · [Frontend coverage](${root}/frontend-coverage/) · [Playwright](${root}/playwright/) · [index](${root}/)`,
+  );
+  sections.push("");
+} else if (prNumber && pagesBase && publishResult && publishResult !== "skipped") {
+  sections.push(
+    `_Per-PR HTML reports unavailable (publish-pr-reports: \`${publishResult}\`). One-time setup: enable Pages on the \`gh-pages\` branch in repo settings._`,
+  );
+  sections.push("");
+}
+
 sections.push("_Updated automatically by the `pr-summary` job._");
 
 process.stdout.write(sections.join("\n") + "\n");

@@ -589,6 +589,7 @@ jobs:
       - sbom
       - oscal
       - verify-evidence
+      - publish-pr-reports
     permissions:
       contents: read
       pull-requests: write
@@ -609,6 +610,9 @@ jobs:
         env:
           RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
           HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          PAGES_BASE_URL: https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}
+          PUBLISH_PR_REPORTS_RESULT: ${{ needs.publish-pr-reports.result }}
         run: node scripts/pr-summary.mjs evidence/ > pr-summary.md
 
       - name: Append summary to step output
@@ -619,3 +623,67 @@ jobs:
         with:
           header: pr-summary
           path: pr-summary.md
+
+  publish-pr-reports:
+    name: Publish HTML reports to GitHub Pages
+    runs-on: ubuntu-latest
+    if: github.event_name == 'pull_request'
+    needs:
+      - test
+      - e2e
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8 # v5.0.0
+
+      - name: Download HTML report artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: incoming/
+          pattern: '{jacoco-report,frontend-coverage,playwright-html-report}'
+
+      # Reports live at gh-pages/pr/<N>/{jacoco,frontend-coverage,playwright}/
+      # so each open PR has a stable URL. keep_files: true on the publish
+      # step preserves other PRs' subtrees on the branch.
+      - name: Stage reports under pr/${{ github.event.pull_request.number }}/
+        run: |
+          set -e
+          dest="pr-reports/pr/${{ github.event.pull_request.number }}"
+          mkdir -p "$dest"
+          [ -d incoming/jacoco-report ] && cp -r incoming/jacoco-report "$dest/jacoco" || true
+          [ -d incoming/frontend-coverage ] && cp -r incoming/frontend-coverage "$dest/frontend-coverage" || true
+          [ -d incoming/playwright-html-report ] && cp -r incoming/playwright-html-report "$dest/playwright" || true
+          # Index page so the bare pr/<N>/ URL is browsable from a phone.
+          cat > "$dest/index.html" <<HTML
+          <!doctype html>
+          <html lang="en">
+          <head>
+          <meta charset="utf-8">
+          <meta name="viewport" content="width=device-width,initial-scale=1">
+          <title>PR #${{ github.event.pull_request.number }} reports</title>
+          <style>body{font-family:system-ui;margin:2rem;font-size:1.1rem}a{display:block;padding:.6rem 0}</style>
+          </head>
+          <body>
+          <h1>PR #${{ github.event.pull_request.number }} reports</h1>
+          <p>Commit <code>${GITHUB_SHA:0:7}</code></p>
+          <a href="jacoco/">JaCoCo backend coverage</a>
+          <a href="frontend-coverage/">Frontend (Karma + Istanbul) coverage</a>
+          <a href="playwright/">Playwright e2e HTML report</a>
+          </body>
+          </html>
+          HTML
+          ls -la "$dest"
+
+      - name: Publish to gh-pages
+        uses: peaceiris/actions-gh-pages@4f9cc6602d3f66b9c108549d475ec49e8ef4d45e # v4.0.0
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: pr-reports/
+          publish_branch: gh-pages
+          keep_files: true
+          commit_message: 'pr-reports: pr/${{ github.event.pull_request.number }} @ ${{ github.event.pull_request.head.sha }}'
+
+      - name: Emit audit event
+        if: always()
+        run: |
+          echo '{"event":"publish_pr_reports","severity":"info","status":"'"${{ job.status }}"'","pr":${{ github.event.pull_request.number }},"commit":"'"${{ github.sha }}"'","timestamp":"'"$(date -u +%Y-%m-%dT%H:%M:%SZ)"'"}'
