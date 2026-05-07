@@ -1,0 +1,19 @@
+# CODEOWNERS — automatic reviewer routing for pull requests.
+# https://docs.github.com/en/repositories/managing-your-repositories-settings-and-features/customizing-your-repository/about-code-owners
+#
+# Single-maintainer placeholder. Patterns are last-match-wins; the
+# global owner below catches anything not covered by a more specific
+# rule. Expand by area when contributors / teams join.
+
+*                                       @doolin
+
+# Future area-scoped rules (uncomment + adjust handles when teams exist):
+# src/main/java/                        @doolin/backend-reviewers
+# src/main/frontend/                    @doolin/frontend-reviewers
+# .github/workflows/                    @doolin/ci-reviewers
+# .gitlab/                              @doolin/ci-reviewers
+# scripts/                              @doolin/ci-reviewers
+# docs/                                 @doolin/docs-reviewers
+# pom.xml                               @doolin/backend-reviewers
+# src/main/frontend/package.json        @doolin/frontend-reviewers
+# .trivyignore                          @doolin/security-reviewers
