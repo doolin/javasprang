@@ -8,7 +8,7 @@ Use [GitHub Security Advisories — "Report a vulnerability"][gha] to
 disclose privately. The maintainer is notified by email and the
 advisory stays private until coordinated disclosure.
 
-[gha]: https://github.com/doolin/javasprang/security/advisories/new
+[gha]: https://github.com/doolin/springboard/security/advisories/new
 
 If GitHub Security Advisories isn't usable for you, open a *blank* PR
 in your own fork (no description, no patch) and link to it from a

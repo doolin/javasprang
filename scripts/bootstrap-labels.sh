@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Idempotent label bootstrap for the javasprang repo.
+# Idempotent label bootstrap for the springboard repo.
 #
 # Reads docs/labels.yml (canonical source) and creates / updates labels
 # in the GitHub repo via the gh CLI. Safe to re-run; existing labels

@@ -154,7 +154,7 @@ that matters to a user who is not an auditor.
 
 ## Starter prompt
 
-> Working on javasprang, a Spring Boot + Angular todo app
+> Working on springboard, a Spring Boot + Angular todo app
 > with CI on GitHub Actions and GitLab. All 7 evidence gaps
 > closed, 128 tests at 99% lines / 88% branches, Checkstyle
 > and ESLint in the pipeline. Read .development/next.md for

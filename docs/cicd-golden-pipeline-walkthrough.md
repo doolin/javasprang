@@ -3,7 +3,7 @@
 *2026-04-20T11:21:07Z by Showboat 0.6.1*
 <!-- showboat-id: d351054f-ad4e-4525-85d9-803fe79bfcf4 -->
 
-This walkthrough explains the CI/CD golden pipeline for javasprang, a Spring Boot + Angular todo application. The pipeline implements NIST SSDF, EO 14028, and OMB M-24-15 compliance across both GitHub Actions and GitLab CI. We'll trace the flow from a push event through compliance checks, artifact packaging, and Solana on-chain attestation.
+This walkthrough explains the CI/CD golden pipeline for springboard, a Spring Boot + Angular todo application. The pipeline implements NIST SSDF, EO 14028, and OMB M-24-15 compliance across both GitHub Actions and GitLab CI. We'll trace the flow from a push event through compliance checks, artifact packaging, and Solana on-chain attestation.
 
 ## Pipeline Architecture
 
@@ -516,7 +516,7 @@ head -21 .gitlab-ci.yml
 # Mirrors .github/workflows/ci-cd.yml.
 #
 # Required GitLab setup:
-#   - A GitLab project at gitlab.<your-host>/<group>/javasprang
+#   - A GitLab project at gitlab.<your-host>/<group>/springboard
 #   - Shared runners enabled (gitlab.com) OR a self-hosted runner
 #     with the `docker` executor
 #   - (For SLSA provenance) Sigstore OIDC trust + $COSIGN_ENABLED=true

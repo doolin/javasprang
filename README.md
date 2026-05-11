@@ -217,7 +217,7 @@ mkdir -p /tmp/oscal-evidence /tmp/oscal-out
 echo '{"Results":[]}' > /tmp/oscal-evidence/trivy-results.json
 echo '{"vulnerabilities":{}}' > /tmp/oscal-evidence/npm-audit.json
 
-REPO=doolin/javasprang COMMIT_SHA=$(git rev-parse HEAD) RUN_ID=local \
+REPO=doolin/springboard COMMIT_SHA=$(git rev-parse HEAD) RUN_ID=local \
   node scripts/generate-oscal.js /tmp/oscal-evidence /tmp/oscal-out
 
 oscal-cli ar validate /tmp/oscal-out/assessment-results.json
