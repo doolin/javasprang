@@ -2,7 +2,7 @@
 # Mirrors .github/workflows/ci-cd.yml.
 #
 # Required GitLab setup:
-#   - A GitLab project at gitlab.<your-host>/<group>/javasprang
+#   - A GitLab project at gitlab.<your-host>/<group>/springboard
 #   - Shared runners enabled (gitlab.com) OR a self-hosted runner
 #     with the `docker` executor
 #   - (For SLSA provenance) Sigstore OIDC trust + $COSIGN_ENABLED=true

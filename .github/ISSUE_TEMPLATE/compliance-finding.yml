@@ -1,6 +1,6 @@
 name: Compliance finding
 description: Track a CVE, control gap, or audit observation through to closure
-title: "Compliance: "
+title: ""
 labels:
   - kind/compliance
   - status/needs-triage

@@ -1,6 +1,6 @@
 name: Feature request
 description: New capability for users or the platform
-title: "Feature: "
+title: ""
 labels:
   - kind/feature
   - status/needs-triage

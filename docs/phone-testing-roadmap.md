@@ -19,7 +19,7 @@ tap the artifact, tap `download`.
 
 Build the Spring Boot jar in CI, push to a free PaaS (Fly.io /
 Render / Railway), give each PR a stable preview URL (e.g.
-`pr-2.javasprang.fly.dev`). Click-through testing from mobile
+`pr-2.springboard.fly.dev`). Click-through testing from mobile
 Safari. Teardown on PR close.
 
 Biggest lift of the patterns here but the biggest win — restores
@@ -55,7 +55,7 @@ tooling changes.
 
 Publish JaCoCo `target/site/jacoco/` and Playwright's
 `coverage/playwright/html-report/` to
-`https://doolin.github.io/javasprang/pr/<N>/...` via the
+`https://doolin.github.io/springboard/pr/<N>/...` via the
 `actions/upload-pages-artifact` + `actions/deploy-pages` flow.
 Phone-browsable rich reports without the artifact-download step.
 

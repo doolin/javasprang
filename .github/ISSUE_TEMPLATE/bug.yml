@@ -1,6 +1,6 @@
 name: Bug report
 description: Something is broken
-title: "Bug: "
+title: ""
 labels:
   - kind/bug
   - status/needs-triage
@@ -44,7 +44,7 @@ body:
     id: run-url
     attributes:
       label: Related CI run URL (optional)
-      placeholder: "https://github.com/doolin/javasprang/actions/runs/..."
+      placeholder: "https://github.com/doolin/springboard/actions/runs/..."
   - type: dropdown
     id: area
     attributes:

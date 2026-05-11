@@ -1,7 +1,7 @@
 # Compliance Evidence Assessment
 
 This directory contains OSCAL JSON schemas and a snapshot of CI/CD
-evidence artifacts used to assess the javasprang golden pipeline
+evidence artifacts used to assess the springboard golden pipeline
 against NIST SP 800-53 Rev. 5, NIST SP 800-218 (SSDF), and DISA
 ASD STIG controls.
 
@@ -136,7 +136,7 @@ https://github.com/usnistgov/OSCAL/releases/tag/v1.1.2
 
 The `artifacts/` subdirectory contains a snapshot of evidence from
 CI run 24726733757 (commit ee4757c, 2026-04-21), downloaded from
-S3 at `s3://inventium-artifacts/javasprang/ci/2026/04/21/140449-ee4757c/`.
+S3 at `s3://inventium-artifacts/springboard/ci/2026/04/21/140449-ee4757c/`.
 
 This snapshot is used for offline review and gap analysis against
 the golden pipeline skill.

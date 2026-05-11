@@ -1,6 +1,6 @@
 name: Chore
 description: Housekeeping that doesn't change behavior (deps, build, refactor)
-title: "Chore: "
+title: ""
 labels:
   - kind/chore
   - status/needs-triage
