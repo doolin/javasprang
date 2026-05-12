@@ -93,3 +93,27 @@ Saved views:
 
 This file is a living doc. When the taxonomy evolves, update both
 `docs/labels.yml` and this file in the same PR.
+
+## Tailored controls and compensating measures
+
+The development-phase repository operates under interim
+self-authorization, with explicit tailoring of certain SP 800-53
+controls per [SP 800-53 Rev. 5 §3.2](https://doi.org/10.6028/NIST.SP.800-53r5).
+The tailoring decisions are documented in
+[`SECURITY.md`](../SECURITY.md#tailored-controls-and-compensating-measures):
+
+- **AC-5 (separation of duties)** — *Alternative Implementation*
+  under the single-maintainer authorization boundary. Tickets in
+  `area/security` or `kind/compliance` should note whether the
+  convention-enforced out-of-band review was performed and link the
+  review notes from the work item discussion thread.
+- **SLSA source-review** — *Not claimable*. Build Level 2 is the
+  practical ceiling pending (a) addition of a second maintainer with
+  merge privileges, or (b) transition to the Authorize step under a
+  designated AO.
+
+When a ticket exposes or extends the tailoring envelope —
+particularly `compliance/*`-labeled work — include a note in the
+ticket body identifying which tailoring it touches and whether the
+residual-risk profile under interim self-authorization remains
+unchanged.
