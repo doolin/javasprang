@@ -35,18 +35,26 @@ validate-commit-prefix:
     - |
       set -e
 
-      # Determine which commits to validate.
+      # Determine which commits to validate. Pass the result through
+      # shell positional args so the no-range case can inject `-1`.
       if [ -n "$CI_MERGE_REQUEST_DIFF_BASE_SHA" ]; then
-        RANGE="$CI_MERGE_REQUEST_DIFF_BASE_SHA..$CI_COMMIT_SHA"
+        set -- "$CI_MERGE_REQUEST_DIFF_BASE_SHA..$CI_COMMIT_SHA"
       elif [ -n "$CI_COMMIT_BEFORE_SHA" ] && [ "$CI_COMMIT_BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
-        RANGE="$CI_COMMIT_BEFORE_SHA..$CI_COMMIT_SHA"
+        set -- "$CI_COMMIT_BEFORE_SHA..$CI_COMMIT_SHA"
       else
-        RANGE="$CI_COMMIT_SHA"
+        # No push range available (e.g., first push of a new branch
+        # where CI_COMMIT_BEFORE_SHA is the zero SHA). Validate only
+        # the head: `git log <SHA>` without -1 walks every reachable
+        # ancestor, which would fail on history that pre-dates the
+        # SB-GL- convention.
+        set -- -1 "$CI_COMMIT_SHA"
       fi
 
       # Write commit log to temp file (avoids subshell variable loss).
+      # Stderr is intentionally not suppressed so failures surface in
+      # the job trace.
       TMPFILE=$(mktemp)
-      git log "$RANGE" --no-merges --format="%H %s" > "$TMPFILE" 2>/dev/null
+      git log "$@" --no-merges --format="%H %s" > "$TMPFILE"
 
       if [ ! -s "$TMPFILE" ]; then
         echo "No non-merge commits to validate."
