@@ -20,6 +20,76 @@
   when: always
 
 # ---------------------------------------------------------------------
+# 0. Validate Commit Prefix (CM-3) — FAST-FAIL GATE
+# ---------------------------------------------------------------------
+# Every commit subject MUST include a SB-GL-<#> prefix referencing
+# the authorizing GitLab issue. This job runs first; if it fails the
+# pipeline stops and no downstream jobs execute.
+validate-commit-prefix:
+  stage: validate-commit
+  image:
+    name: alpine/git:latest
+    entrypoint: [""]
+  <<: *default-rules
+  script:
+    - |
+      set -e
+
+      # Determine which commits to validate.
+      if [ -n "$CI_MERGE_REQUEST_DIFF_BASE_SHA" ]; then
+        RANGE="$CI_MERGE_REQUEST_DIFF_BASE_SHA..$CI_COMMIT_SHA"
+      elif [ -n "$CI_COMMIT_BEFORE_SHA" ] && [ "$CI_COMMIT_BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+        RANGE="$CI_COMMIT_BEFORE_SHA..$CI_COMMIT_SHA"
+      else
+        RANGE="$CI_COMMIT_SHA"
+      fi
+
+      # Write commit log to temp file (avoids subshell variable loss).
+      TMPFILE=$(mktemp)
+      git log "$RANGE" --no-merges --format="%H %s" > "$TMPFILE" 2>/dev/null
+
+      if [ ! -s "$TMPFILE" ]; then
+        echo "No non-merge commits to validate."
+        rm -f "$TMPFILE"
+        exit 0
+      fi
+
+      FAILED=0
+      while IFS= read -r line; do
+        [ -z "$line" ] && continue
+        sha="${line%% *}"
+        subject="${line#* }"
+        if echo "$subject" | grep -qE '^SB-GL-[0-9]+'; then
+          echo " ok : $sha — $subject"
+        else
+          echo "FAIL: $sha"
+          echo "      subject: $subject"
+          echo "      missing SB-GL-<#> prefix"
+          FAILED=1
+        fi
+      done < "$TMPFILE"
+      rm -f "$TMPFILE"
+
+      if [ "$FAILED" -eq 1 ]; then
+        echo ""
+        echo "Every commit subject must start with SB-GL-<#> (GitLab issue number)."
+        echo "Example: SB-GL-20 Add commit prefix validation gate"
+        exit 1
+      fi
+      echo ""
+      echo "All commits have valid SB-GL-<#> prefix."
+  after_script:
+    - |
+      event="{\"event\":\"validate_commit_prefix\",\"severity\":\"info\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"
+      echo "$event"
+      echo "$event" > audit-event-validate-commit.json
+  artifacts:
+    <<: *artifacts-defaults
+    name: "audit-validate-commit-$CI_COMMIT_SHORT_SHA"
+    paths:
+      - audit-event-validate-commit.json
+
+# ---------------------------------------------------------------------
 # 1. Secrets Scan (PW.6)
 # ---------------------------------------------------------------------
 secrets-scan:

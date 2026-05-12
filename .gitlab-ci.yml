@@ -19,12 +19,13 @@ workflow:
     - if: '$CI_COMMIT_BRANCH && $CI_PIPELINE_SOURCE == "push"'
 
 stages:
-  - compliance-check       # secrets-scan, test, vuln-scan in parallel
-  - compliance-sbom        # needs test
-  - compliance-oscal       # needs vuln-scan
-  - compliance-verify      # needs vuln-scan + sbom + oscal
-  - package                # main/master only: jar + SLSA provenance
-  - attest                 # main/master only: Solana on-chain attestation
+  - validate-commit       # fast-fail: SB-GL-# prefix check
+  - compliance-check      # secrets-scan, test, vuln-scan in parallel
+  - compliance-sbom       # needs test
+  - compliance-oscal      # needs vuln-scan
+  - compliance-verify     # needs vuln-scan + sbom + oscal
+  - package               # main/master only: jar + SLSA provenance
+  - attest                # main/master only: Solana on-chain attestation
 
 variables:
   JAVA_VERSION: "17"
