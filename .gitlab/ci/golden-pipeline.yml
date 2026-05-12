@@ -35,18 +35,32 @@ validate-commit-prefix:
     - |
       set -e
 
+      # CI_COMMIT_BEFORE_SHA is set on push events but can point at an
+      # orphan commit if the push was a force-push (the previous head
+      # is no longer reachable from the new head in the shallow clone).
+      # Detect that case so we can fall back instead of failing with
+      # "fatal: Invalid revision range".
+      BEFORE_USABLE=
+      if [ -n "$CI_COMMIT_BEFORE_SHA" ] && [ "$CI_COMMIT_BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+        if git cat-file -e "$CI_COMMIT_BEFORE_SHA^{commit}" 2>/dev/null; then
+          BEFORE_USABLE=1
+        else
+          echo "warn: CI_COMMIT_BEFORE_SHA ($CI_COMMIT_BEFORE_SHA) not reachable in this shallow clone; treating as force-push and validating head only." >&2
+        fi
+      fi
+
       # Determine which commits to validate. Pass the result through
       # shell positional args so the no-range case can inject `-1`.
       if [ -n "$CI_MERGE_REQUEST_DIFF_BASE_SHA" ]; then
         set -- "$CI_MERGE_REQUEST_DIFF_BASE_SHA..$CI_COMMIT_SHA"
-      elif [ -n "$CI_COMMIT_BEFORE_SHA" ] && [ "$CI_COMMIT_BEFORE_SHA" != "0000000000000000000000000000000000000000" ]; then
+      elif [ -n "$BEFORE_USABLE" ]; then
         set -- "$CI_COMMIT_BEFORE_SHA..$CI_COMMIT_SHA"
       else
-        # No push range available (e.g., first push of a new branch
-        # where CI_COMMIT_BEFORE_SHA is the zero SHA). Validate only
-        # the head: `git log <SHA>` without -1 walks every reachable
-        # ancestor, which would fail on history that pre-dates the
-        # SB-GL- convention.
+        # No usable push range (new-branch first push with zero SHA,
+        # OR force-push leaving the previous SHA orphan). Validate
+        # only the head: `git log <SHA>` without -1 walks every
+        # reachable ancestor and would fail on history that pre-dates
+        # the SB-GL- convention.
         set -- -1 "$CI_COMMIT_SHA"
       fi
 
