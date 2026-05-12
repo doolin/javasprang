@@ -94,6 +94,55 @@ Saved views:
 This file is a living doc. When the taxonomy evolves, update both
 `docs/labels.yml` and this file in the same PR.
 
+## Commit-to-ticket traceability
+
+Every non-merge commit on `master` carries a subject-line prefix of
+the form `SB-GL-` followed by the GitLab work-item IID, a space, and
+the rest of the subject. For example:
+
+```
+SB-GL-22 Fix validate-commit no-range fallback walking full history
+```
+
+The prefix is enforced server-side by the `validate-commit-prefix` CI
+gate (defined in
+[`.gitlab/ci/golden-pipeline.yml`](../.gitlab/ci/golden-pipeline.yml))
+as the first, fast-fail stage of the pipeline: a non-conforming
+commit blocks every downstream job.
+
+**What the prefix establishes** ([NIST SP 800-53
+CM-3](https://doi.org/10.6028/NIST.SP.800-53r5), configuration change
+control). The implementing commit's authorizing record is
+machine-discoverable from the commit subject alone. The referenced
+work item carries the substantive authorization: source, severity,
+decision, justification, acceptance criteria, removal/re-evaluation
+condition.
+
+**Evidence artifact.** Each pipeline run emits
+`traceability-report.json` listing every commit in the push or MR
+range with its referenced ticket IID, ticket URL, and subject. The
+artifact is archived alongside the rest of the evidence bundle
+(`artifact-class: change-authorization-trace`, `retention-class:
+long-term`).
+
+**Multiple-ticket commits.** A commit may reference additional
+tickets in the *body* via `Refs:` URL lines, but the subject prefix
+references exactly one ticket — the one authorizing the change.
+
+**Convention divergence note.**
+[SB-GL-9](https://gitlab.com/doolin/springboard/-/work_items/9)
+originally proposed a `Refs:` / `Closes:` footer convention; the
+project adopted the prefix form via
+[SB-GL-20](https://gitlab.com/doolin/springboard/-/work_items/20).
+Both serve the same control objective; the prefix is preferred for
+one-line discoverability in `git log --oneline` and for fast-fail
+regex enforcement in CI without parsing commit bodies.
+
+**Local enforcement (deliberately omitted).** No client-side
+`commit-msg` git hook is shipped. The server-side gate is the
+binding control; a client hook would be a developer-experience
+nicety with no incremental compliance value.
+
 ## Tailored controls and compensating measures
 
 The development-phase repository operates under interim

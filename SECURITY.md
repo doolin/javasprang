@@ -197,6 +197,18 @@ Each finding gets a ticket with:
 Suppressed CVEs are documented inline in `.trivyignore` with their own
 justification and removal condition.
 
+**Commit-to-ticket traceability ([CM-3][sp53]).** Every non-merge
+commit on `master` carries a subject-line prefix referencing its
+authorizing GitLab work item. The convention is enforced server-side
+by the `validate-commit-prefix` CI gate as a fast-fail stage; a
+non-conforming commit blocks the pipeline before any downstream job
+runs. The gate also emits a per-pipeline `traceability-report.json`
+artifact mapping each commit SHA in the push or MR range to its
+referenced ticket; the artifact is included in the CI evidence
+bundle (`artifact-class: change-authorization-trace`,
+`retention-class: long-term`). Full convention:
+[`docs/ticket-conventions.md`](./docs/ticket-conventions.md#commit-to-ticket-traceability).
+
 ## Security pipeline
 
 The CI/CD pipeline runs on every PR and emits machine-readable

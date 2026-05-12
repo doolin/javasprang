@@ -49,6 +49,7 @@ const classificationRules = [
   { pattern: /^trivy-results\.json$/, artifactClass: "vulnerability-scan", retentionClass: "long-term" },
   { pattern: /^evidence-manifest\.json$/, artifactClass: "manifest", retentionClass: "long-term" },
   { pattern: /^audit-event-.*\.json$/, artifactClass: "audit-event", retentionClass: "standard" },
+  { pattern: /^traceability-report\.json$/, artifactClass: "change-authorization-trace", retentionClass: "long-term" },
   { pattern: /^surefire-reports\//, artifactClass: "test-results", retentionClass: "standard" },
   { pattern: /^jacoco-report\//, artifactClass: "coverage", retentionClass: "standard" },
   { pattern: /^frontend-coverage\//, artifactClass: "coverage", retentionClass: "standard" },

@@ -31,6 +31,8 @@ validate-commit-prefix:
     name: alpine/git:latest
     entrypoint: [""]
   <<: *default-rules
+  before_script:
+    - apk add --no-cache jq
   script:
     - |
       set -e
@@ -70,29 +72,66 @@ validate-commit-prefix:
       TMPFILE=$(mktemp)
       git log "$@" --no-merges --format="%H %s" > "$TMPFILE"
 
+      # TSV intermediates for the traceability report.
+      # TRACEFILE rows: <sha>\t<ticket_id>\t<subject>  (valid commits)
+      # MISSFILE rows:  <sha>\t<subject>               (missing prefix)
+      TRACEFILE=$(mktemp)
+      MISSFILE=$(mktemp)
+
       if [ ! -s "$TMPFILE" ]; then
         echo "No non-merge commits to validate."
-        rm -f "$TMPFILE"
-        exit 0
+      else
+        FAILED=0
+        while IFS= read -r line; do
+          [ -z "$line" ] && continue
+          sha="${line%% *}"
+          subject="${line#* }"
+          if echo "$subject" | grep -qE '^SB-GL-[0-9]+'; then
+            iid=$(echo "$subject" | sed -nE 's/^SB-GL-([0-9]+).*/\1/p')
+            printf '%s\t%s\t%s\n' "$sha" "$iid" "$subject" >> "$TRACEFILE"
+            echo " ok : $sha — $subject"
+          else
+            printf '%s\t%s\n' "$sha" "$subject" >> "$MISSFILE"
+            echo "FAIL: $sha"
+            echo "      subject: $subject"
+            echo "      missing SB-GL-<#> prefix"
+            FAILED=1
+          fi
+        done < "$TMPFILE"
       fi
-
-      FAILED=0
-      while IFS= read -r line; do
-        [ -z "$line" ] && continue
-        sha="${line%% *}"
-        subject="${line#* }"
-        if echo "$subject" | grep -qE '^SB-GL-[0-9]+'; then
-          echo " ok : $sha — $subject"
-        else
-          echo "FAIL: $sha"
-          echo "      subject: $subject"
-          echo "      missing SB-GL-<#> prefix"
-          FAILED=1
-        fi
-      done < "$TMPFILE"
       rm -f "$TMPFILE"
 
-      if [ "$FAILED" -eq 1 ]; then
+      # Emit traceability-report.json regardless of validation outcome
+      # (CM-3 evidence — see
+      # docs/ticket-conventions.md#commit-to-ticket-traceability).
+      commits_json=$(jq -nR --arg project_url "$CI_PROJECT_URL" '
+        [inputs | split("\t") | {
+          sha: .[0],
+          ticket_id: (.[1] | tonumber),
+          ticket_ref: ("SB-GL-" + .[1]),
+          ticket_url: ($project_url + "/-/work_items/" + .[1]),
+          subject: .[2]
+        }]
+      ' "$TRACEFILE")
+      missing_json=$(jq -nR '
+        [inputs | split("\t") | { sha: .[0], subject: .[1] }]
+      ' "$MISSFILE")
+      jq -n --arg pipeline_id "$CI_PIPELINE_ID" \
+            --arg head_commit "$CI_COMMIT_SHA" \
+            --arg generated_at "$(date -u +%Y-%m-%dT%H:%M:%SZ)" \
+            --argjson commits "$commits_json" \
+            --argjson missing "$missing_json" \
+            '{
+              schema_version: 1,
+              pipeline_id: $pipeline_id,
+              head_commit: $head_commit,
+              generated_at: $generated_at,
+              commits: $commits,
+              missing_prefix: $missing
+            }' > traceability-report.json
+      rm -f "$TRACEFILE" "$MISSFILE"
+
+      if [ "${FAILED:-0}" -eq 1 ]; then
         echo ""
         echo "Every commit subject must start with SB-GL-<#> (GitLab issue number)."
         echo "Example: SB-GL-20 Add commit prefix validation gate"
@@ -107,9 +146,10 @@ validate-commit-prefix:
       echo "$event" > audit-event-validate-commit.json
   artifacts:
     <<: *artifacts-defaults
-    name: "audit-validate-commit-$CI_COMMIT_SHORT_SHA"
+    name: "validate-commit-$CI_COMMIT_SHORT_SHA"
     paths:
       - audit-event-validate-commit.json
+      - traceability-report.json
 
 # ---------------------------------------------------------------------
 # 1. Secrets Scan (PW.6)
