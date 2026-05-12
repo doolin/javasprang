@@ -68,23 +68,41 @@ implemented in this development phase.
 
 **Compensating measures in place.**
 
-1. *Cryptographically anchored pipeline evidence.* (Mapped to SI-7,
-   SC-12; [SSDF PS.2.1][ssdf].) Every commit on `master` produces a
-   full evidence bundle — OSCAL assessment results, CycloneDX SBOM,
-   scan results, audit events — anchored via [RFC 3161][rfc3161]
-   (Sigstore TSA) and Solana memo (devnet; see [SB-GL-6][sb-gl-6]).
-   The anchor provides non-repudiable evidence that a specific commit
-   passed all automated gates at a specific time. It does **not**
-   provide duty separation; it provides post-hoc attributability of
-   the unilateral merge.
+1. *Cryptographically anchored pipeline evidence, configuration-bound
+   to merge gating.* (Mapped to SI-7, SC-12; [SSDF PS.2.1][ssdf].)
+   Every commit on `master` produces a full evidence bundle — OSCAL
+   assessment results, CycloneDX SBOM, scan results, audit events —
+   anchored via [RFC 3161][rfc3161] (Sigstore TSA) and Solana memo
+   (devnet; see [SB-GL-6][sb-gl-6]). The anchor provides non-
+   repudiable evidence that a specific commit passed all automated
+   gates at a specific time. Merges to `master` are bound to pipeline
+   success by project configuration —
+   `only_allow_merge_if_pipeline_succeeds: true` and
+   `allow_merge_on_skipped_pipeline: false` — so a merge request whose
+   pipeline failed or was skipped cannot be merged through the GitLab
+   UI. The binding is configuration-enforced, not maintainer
+   discipline. The measure does **not** provide duty separation; it
+   provides post-hoc, configuration-gated attributability of the
+   unilateral merge.
 
-2. *Convention-enforced out-of-band review for security-relevant
-   changes.* Work items carrying `area/security` or `kind/compliance`
-   labels are reviewed against external references (relevant NIST
-   SPs, applicable CVE feeds, the SLSA spec) prior to merge. Review
-   notes are captured in the work item discussion thread. Enforcement
-   is by maintainer discipline; no pipeline gate currently enforces
-   it.
+2. *Out-of-band review for security-relevant changes — partial
+   configuration binding.* Work items carrying `area/security` or
+   `kind/compliance` labels are reviewed against external references
+   (relevant NIST SPs, applicable CVE feeds, the SLSA spec) prior to
+   merge. Review notes are captured in the work item discussion
+   thread. Two parts of this measure have different bindings:
+
+   - *Whether* a review thread is opened on the MR remains convention-
+     enforced (maintainer discipline). No configuration today requires
+     `area/security` or `kind/compliance` MRs to carry a review
+     thread.
+   - *Once opened*, every discussion thread on the MR must be marked
+     resolved before merge — configuration-enforced via
+     `only_allow_merge_if_all_discussions_are_resolved: true`.
+
+   Closing the convention-enforced gap (mandatory review-thread on
+   sensitive MRs) is a non-trivial workflow change; tracked
+   separately rather than rolled into this section.
 
 **Compensating measures planned (tracked, not yet in place).**
 
