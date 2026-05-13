@@ -21,7 +21,7 @@ on:
         default: "./mvnw -B -ntp verify"
       frontend-test-command:
         type: string
-        default: "npm test -- --watch=false --browsers=ChromeHeadless --code-coverage"
+        default: "npm test -- --watch=false --browsers=ChromeHeadless --code-coverage && node scripts/check-coverage.mjs"
       frontend-dir:
         type: string
         default: "src/main/frontend"
