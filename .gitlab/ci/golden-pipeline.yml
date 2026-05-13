@@ -222,6 +222,7 @@ test:
     - ./mvnw $MAVEN_CLI_OPTS verify
     - cd $FRONTEND_DIR && npm ci
     - npm test -- --watch=false --browsers=ChromeHeadlessCI --code-coverage
+    - node scripts/check-coverage.mjs
   after_script:
     - |
       event="{\"event\":\"test\",\"severity\":\"info\",\"status\":\"$CI_JOB_STATUS\",\"pipeline_id\":\"$CI_PIPELINE_ID\",\"commit\":\"$CI_COMMIT_SHA\",\"timestamp\":\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\"}"

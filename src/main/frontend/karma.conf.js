@@ -26,7 +26,15 @@ module.exports = function (config) {
         { type: 'lcovonly', file: 'lcov.info' },
         { type: 'json-summary', file: 'coverage-summary.json' },
         { type: 'text-summary' }
-      ]
+      ],
+      check: {
+        global: {
+          statements: 98,
+          branches: 55,
+          functions: 100,
+          lines: 98
+        }
+      }
     },
     reporters: ['progress', 'kjhtml'],
     customLaunchers: {
