@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>AuthService.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">todo-app</a> &gt; <a href="index.source.html" class="el_package">com.todoapp.service</a> &gt; <span class="el_source">AuthService.java</span></div><h1>AuthService.java</h1><pre class="source lang-java linenums">package com.todoapp.service;
+
+import com.todoapp.dto.AuthRequest;
+import com.todoapp.dto.AuthResponse;
+import com.todoapp.dto.RegisterRequest;
+import com.todoapp.entity.User;
+import com.todoapp.exception.InvalidCredentialsException;
+import com.todoapp.exception.ResourceConflictException;
+import com.todoapp.security.UserDetailsImpl;
+import com.todoapp.util.JwtUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.AuthenticationException;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import java.util.Arrays;
+import java.util.HashSet;
+
+@Service
+public class AuthService {
+    private final UserService userService;
+    private final PasswordEncoder passwordEncoder;
+    private final AuthenticationManager authenticationManager;
+    private final JwtUtil jwtUtil;
+
+    @Autowired
+    public AuthService(UserService userService,
+                      PasswordEncoder passwordEncoder,
+                      AuthenticationManager authenticationManager,
+<span class="fc" id="L33">                      JwtUtil jwtUtil) {</span>
+<span class="fc" id="L34">        this.userService = userService;</span>
+<span class="fc" id="L35">        this.passwordEncoder = passwordEncoder;</span>
+<span class="fc" id="L36">        this.authenticationManager = authenticationManager;</span>
+<span class="fc" id="L37">        this.jwtUtil = jwtUtil;</span>
+<span class="fc" id="L38">    }</span>
+    
+    public AuthResponse login(AuthRequest request) {
+        try {
+<span class="fc" id="L42">            Authentication authentication = authenticationManager.authenticate(</span>
+<span class="fc" id="L43">                new UsernamePasswordAuthenticationToken(request.getUsername(), request.getPassword())</span>
+            );
+            
+<span class="fc" id="L46">            UserDetailsImpl userDetails = (UserDetailsImpl) authentication.getPrincipal();</span>
+<span class="fc" id="L47">            String token = jwtUtil.generateToken(userDetails);</span>
+
+<span class="fc" id="L49">            return new AuthResponse(</span>
+                token,
+<span class="fc" id="L51">                userDetails.getUsername(),</span>
+<span class="fc" id="L52">                userDetails.getUser().getEmail()</span>
+            );
+<span class="fc" id="L54">        } catch (AuthenticationException e) {</span>
+<span class="fc" id="L55">            throw new InvalidCredentialsException(&quot;Invalid username or password&quot;);</span>
+        }
+    }
+
+    public AuthResponse register(RegisterRequest request) {
+        // Check if username already exists
+<span class="fc bfc" id="L61" title="All 2 branches covered.">        if (userService.findByUsername(request.getUsername()).isPresent()) {</span>
+<span class="fc" id="L62">            throw new ResourceConflictException(&quot;Username already exists&quot;);</span>
+        }
+
+        // Check if email already exists
+<span class="fc bfc" id="L66" title="All 2 branches covered.">        if (userService.findByEmail(request.getEmail()).isPresent()) {</span>
+<span class="fc" id="L67">            throw new ResourceConflictException(&quot;Email already exists&quot;);</span>
+        }
+
+        // Create new user
+<span class="fc" id="L71">        User user = new User();</span>
+<span class="fc" id="L72">        user.setUsername(request.getUsername());</span>
+<span class="fc" id="L73">        user.setEmail(request.getEmail());</span>
+<span class="fc" id="L74">        user.setPassword(passwordEncoder.encode(request.getPassword()));</span>
+<span class="fc" id="L75">        user.setRoles(new HashSet&lt;&gt;(Arrays.asList(&quot;ROLE_USER&quot;)));</span>
+
+        // Save user
+<span class="fc" id="L78">        User savedUser = userService.save(user);</span>
+
+        // Create UserDetails and generate token
+<span class="fc" id="L81">        UserDetailsImpl userDetails = new UserDetailsImpl(savedUser);</span>
+<span class="fc" id="L82">        String token = jwtUtil.generateToken(userDetails);</span>
+
+        // Create and return response
+<span class="fc" id="L85">        return new AuthResponse(</span>
+            token,
+<span class="fc" id="L87">            savedUser.getUsername(),</span>
+<span class="fc" id="L88">            savedUser.getEmail()</span>
+        );
+    }
+} 
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
