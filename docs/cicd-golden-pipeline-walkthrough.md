@@ -204,6 +204,16 @@ grep -n 'Trivy\|npm audit\|trivy-severity\|exit-code\|trivyignore' .github/workf
 
 The JSON evidence scan uses `exit-code: 0` (always succeeds, captures evidence). The table scan uses `exit-code: 1` (fails the job if findings exist). Both use the same `.trivyignore` file — inconsistent ignore lists would cause the two scans to disagree.
 
+**Suppression strategy and dossier drift.** Trivy findings split into two classes: *fixable in our pinned version* (must be remediated) and *fixable only in a major version we cannot upgrade to* (must be either upgraded or suppressed with documented justification). For the second class, the project keeps `.trivyignore` as a suppress-with-justification record. Each entry SHALL carry the CVE identifier, the audit command(s) that confirmed the exploitable surface is absent from this application, a removal condition (typically: "when SB-GL-39 Spring Boot 3 migration lands"), and a quarterly review date.
+
+The decision matrix for the current Spring Boot 2.7 BOM-locked CVE landscape is captured in [`docs/compliance/research/2026-05-12-cve-dossier.md`](compliance/research/2026-05-12-cve-dossier.md). That dossier is the input to the per-cluster suppression tickets (SB-GL-26 Spring framework cluster, SB-GL-27 logback cluster, SB-GL-28 jackson cluster, SB-GL-29 Trivy severity gate elevation).
+
+A dossier is a *point-in-time snapshot*, not a continuously-correct source of truth. The CVE database evolves: between authorship and execution, new HIGH findings may surface, others may roll off. On 2026-05-13 we explicitly chose to **continue executing the dossier's planned cluster tickets as written** rather than pausing to re-audit, on these grounds:
+
+1. The suppression-with-justification entries are compliance evidence ([SP 800-53 SI-2](https://doi.org/10.6028/NIST.SP.800-53r5) flaw remediation; [SP 800-218](https://doi.org/10.6028/NIST.SP.800-218) RV.1) for the specific CVEs they name, regardless of whether Trivy still surfaces them in any given scan. An assessor reading the audit trail wants to see *"we considered this CVE, audited the code path, made a documented decision"* — that value persists when the CVE rolls off Trivy's table.
+2. Pausing to refresh the dossier introduces scope drift: every refresh discovers new CVEs, which require new audits, which delay the original remediation goal indefinitely.
+3. The freshness gap between dossier and current Trivy is itself a tracked finding — refreshed as a separate continuous-monitoring item, not as a blocker on the planned cluster work.
+
 ### 2d. SBOM Generation (PW.4)
 
 Generates a CycloneDX SBOM after test passes. Resolves Maven runtime dependencies and frontend production deps before running syft so the SBOM reflects what's deployed, not what's used for development.
