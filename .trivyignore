@@ -109,3 +109,40 @@ CVE-2023-6378
 # enable it. Exploitable surface absent.
 # Fix: 1.3.12+ / 1.4.12+. Removal: SB-GL-39 Spring Boot 3 migration.
 CVE-2023-6481
+
+# --- SB-GL-28: jackson-databind BOM-locked cluster (2 CVEs) ---
+# Both CVEs are pinned to jackson-databind 2.13.5, the terminal release
+# of the 2.13.x line. Spring Boot 2.7 BOM pins jackson 2.13.x; no 2.13.x
+# backport for either CVE. Authoritative remediation is the Spring Boot
+# 2.7 → 3.x migration tracked at SB-GL-39 (which pulls in jackson 2.15+).
+# Audited 2026-05-13. Quarterly review due 2026-08-13.
+
+# CVE-2024-49338 — jackson-databind 2.13.5
+# Unsafe deserialization when polymorphic type handling (default-typing)
+# is active and an attacker can supply type metadata in the JSON payload.
+# Audit: `grep -rn "enableDefaultTyping\|activateDefaultTyping\|DefaultTyping\|PolymorphicTypeValidator" src/main/java/`
+# returns zero matches. No custom `ObjectMapper` beans. The application
+# uses Spring Boot's default ObjectMapper with explicit type bindings only
+# (@RestController + @RequestBody DTO classes); polymorphic deserialization
+# is never enabled, so attacker-supplied type metadata has no effect.
+# Fix: no 2.13.x backport. Removal: SB-GL-39 Spring Boot 3 migration.
+CVE-2024-49338
+
+# CVE-2023-35116 — jackson-databind 2.13.5
+# NVD-disputed DoS via deeply-nested JSON or oversized object graphs.
+# The Jackson maintainers dispute this finding (https://github.com/
+# FasterXML/jackson-databind/issues/3972) — the project's position is
+# that resource bounds at the HTTP layer are the proper mitigation, not
+# a Jackson code change. Accept-risk + compensating control rather than
+# pure suppress-with-justification.
+# Compensating control: `server.tomcat.max-http-post-size=2MB` and
+# `server.tomcat.max-http-form-post-size=2MB` set explicitly in
+# src/main/resources/application.properties. Any payload exceeding 2MB
+# is rejected by the container before reaching Jackson, bounding the
+# deserialization-resource impact at the boundary.
+# Decision authority: documented per SP 800-37 risk-acceptance process;
+# interim AO acknowledgement via SB-GL-28 ticket discussion.
+# Removal: when (a) NVD reverses the dispute (then re-evaluate fix
+# requirement) or (b) SB-GL-39 Spring Boot 3 migration brings jackson
+# 2.15+ which has the requested guards.
+CVE-2023-35116
