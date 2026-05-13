@@ -80,13 +80,18 @@ fi
 
 # search_by_title: emit the .web_url of an exact-title match (or empty).
 # Uses --search (substring/fuzzy) then filters to exact title match via jq.
+# `--all` includes both open and closed issues; without it `glab issue list`
+# defaults to open-only, which would miss closed duplicates and lead to
+# duplicate-creation if a previously-closed ticket has the same title.
+# stderr is intentionally NOT suppressed — a glab flag-syntax error must
+# surface immediately rather than silently kill the script (SB-GL-46).
 search_by_title() {
   local title="$1"
   glab issue list \
     --repo "$REPO" \
     --search "$title" \
-    --state all \
-    --output json 2>/dev/null \
+    --all \
+    --output json \
     | jq -r --arg t "$title" '
         if type == "array" then
           [.[] | select(.title == $t)] | sort_by(.iid) | .[0].web_url // empty
