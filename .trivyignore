@@ -16,3 +16,59 @@ CVE-2026-22732
 # @RestController/@RequestMapping. Actual exploitability: false positive.
 # Remove this entry after the Spring Boot 3 migration lands.
 CVE-2016-1000027
+
+# --- SB-GL-26: Spring framework / Spring Security HIGH cluster (4 CVEs) ---
+# All four CVEs below are pinned to BOM-locked terminal versions (Spring
+# 5.3.39 / Spring Security 5.7.14). No 5.x fix releases exist. Authoritative
+# remediation is the Spring Boot 2.7 → 3.x migration tracked at SB-GL-39.
+# Each entry below is suppressed only after a code-path audit confirmed the
+# exploitable surface is absent from this application.
+# Audited 2026-05-13. Quarterly review due 2026-08-13.
+
+# CVE-2024-22257 — spring-security-web 5.7.14
+# AuthorizationFilter bypass when `shouldFilterAllDispatcherTypes` is false:
+# FORWARD / INCLUDE dispatches can bypass authorization.
+# Audit: `grep -rn "shouldFilterAllDispatcherTypes\|RequestDispatcher\|forward(\|include(" src/main/java/`
+# returns zero matches. SecurityConfig.java uses `authorizeHttpRequests` with
+# no custom dispatcher-type filter override; no FORWARD/INCLUDE dispatch is
+# issued by the application, so the bypass condition cannot be reached.
+# Fix: no 5.7.x backport. Removal: SB-GL-39 Spring Boot 3 migration.
+CVE-2024-22257
+
+# CVE-2024-22243 — spring-web 5.3.39
+# URL parsing inconsistency in `UriComponentsBuilder` — crafted Host headers
+# enable open-redirect or SSRF when the application forwards user-supplied URLs.
+# Audit: `grep -rn "UriComponentsBuilder\|fromUriString\|fromHttpUrl" src/main/java/`
+# returns zero matches. The application does not parse or forward
+# user-supplied URLs anywhere in the request path.
+# Fix: 5.3.39 is the terminal 5.3.x release. Removal: SB-GL-39 Spring Boot 3 migration.
+CVE-2024-22243
+
+# CVE-2024-22262 — spring-web 5.3.39
+# Follow-on to CVE-2024-22243. `UriComponentsBuilder.fromHttpUrl()` fails
+# to reject URLs with encoded characters, enabling open-redirect.
+# Audit: identical to CVE-2024-22243 — no `UriComponentsBuilder` usage in
+# this codebase, so the exploitable surface is absent.
+# Fix: terminal 5.3.x release. Removal: SB-GL-39 Spring Boot 3 migration.
+CVE-2024-22262
+
+# CVE-2024-38819 — spring-webmvc 5.3.39
+# Path traversal via `RouterFunctions.resources()` (functional routing).
+# Audit: `grep -rn "RouterFunctions\|RouterFunction" src/main/java/` returns
+# zero matches. All controllers are annotation-driven MVC
+# (@RestController + @RequestMapping); functional routing is not used.
+# Fix: no 5.3.x backport. Removal: SB-GL-39 Spring Boot 3 migration.
+CVE-2024-38819
+
+# CVE-2024-38816 — spring-webmvc 5.3.x
+# Path traversal in spring-webmvc (functional routing). Trivy DB surfaces
+# this CVE for the package alongside CVE-2024-38819 — same vulnerability
+# family, same exploitable surface, same audit. The dossier at
+# docs/compliance/research/2026-05-12-cve-dossier.md may have listed
+# 38819 as a typo / superseded ID for what Trivy now reports as 38816;
+# both IDs are suppressed here so the cluster covers either way Trivy
+# surfaces it.
+# Audit: identical to CVE-2024-38819 — no `RouterFunctions` usage in
+# this codebase, so the exploitable surface is absent.
+# Fix: 6.1.13+. Removal: SB-GL-39 Spring Boot 3 migration.
+CVE-2024-38816
