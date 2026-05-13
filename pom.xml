@@ -33,7 +33,7 @@
         <tomcat.version>9.0.117</tomcat.version>
         <logback.version>1.2.13</logback.version>
         <snakeyaml.version>2.6</snakeyaml.version>
-        <postgresql.version>42.7.10</postgresql.version>
+        <postgresql.version>42.7.11</postgresql.version>
     </properties>
 
     <dependencies>
