@@ -34,6 +34,7 @@
         <logback.version>1.2.13</logback.version>
         <snakeyaml.version>2.6</snakeyaml.version>
         <postgresql.version>42.7.11</postgresql.version>
+        <jackson-bom.version>2.15.4</jackson-bom.version>
     </properties>
 
     <dependencies>
