@@ -210,3 +210,30 @@ CVE-2026-40973
 # until Spring Boot 3.x migration.
 # Removal: SB-GL-39 Spring Boot 3 migration (pulls in 6.2.x line).
 CVE-2025-41249
+
+# CVE-2025-22228 — spring-security-crypto 5.7.14 (SB-GL-50)
+# BCryptPasswordEncoder.matches(CharSequence, String) incorrectly returns
+# true for passwords longer than 72 characters when the first 72
+# characters match the legitimate password's first 72 characters —
+# authentication bypass for any account whose owner has set a >72-char
+# password.
+# Exploit precondition: a stored credential whose cleartext was >72 chars
+# at registration time AND an attacker who can guess the first 72.
+# Fix versions (5.7.16 / 5.8.18 / 6.0.16 / 6.1.14 / 6.2.10 / 6.3.8 / 6.4.4)
+# are published only via VMware Tanzu Spring Runtime (commercial feed);
+# 5.7.16 is NOT available in public Maven Central. Same situation as
+# CVE-2025-41249 (SB-GL-49) and spring-framework 5.3.45.
+# Compensating control: cleartext password input is capped at 72 chars
+# via Bean Validation at both authentication endpoints:
+#   - src/main/java/com/todoapp/dto/RegisterRequest.java: @Size(min=6, max=72)
+#   - src/main/java/com/todoapp/dto/AuthRequest.java:     @Size(max=72)
+# Requests exceeding 72 chars are rejected by Spring MVC with HTTP 400
+# before reaching BCryptPasswordEncoder.matches(). Coverage:
+# AuthControllerTest.registerRejectsPasswordOverSeventyTwoChars and
+# AuthControllerTest.loginRejectsPasswordOverSeventyTwoChars verify the
+# rejection path. Decision pathway documented in SECURITY.md
+# "Compensating control: BCrypt input-length cap (CVE-2025-22228)".
+# Removal: when (a) the spring-security-crypto fix becomes available in
+# public Maven Central OR (b) SB-GL-39 Spring Boot 3 migration pulls in
+# the 6.x line.
+CVE-2025-22228

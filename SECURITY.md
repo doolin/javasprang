@@ -157,6 +157,54 @@ Track L3 SHOULD NOT consume artifacts produced under this
 development-phase posture. Re-evaluation conditions are identical to
 AC-5 above.
 
+### Compensating control: BCrypt input-length cap (CVE-2025-22228)
+
+**Control objective:** [SP 800-53 SI-2][sp53] — Flaw remediation for
+[CVE-2025-22228][cve-22228], a HIGH-severity authentication bypass in
+`BCryptPasswordEncoder.matches(CharSequence, String)`. The matcher
+incorrectly returns `true` for passwords longer than 72 characters
+when the first 72 characters match the legitimate password's first 72
+characters.
+
+**Baseline applicability.** SI-2 applies at FIPS 199 Moderate. The
+direct remediation (`spring-security-crypto` 5.7.16 or 6.x) is
+unavailable on public Maven Central: the 5.7.x fix exists only in
+VMware Tanzu Spring Runtime (commercial / enterprise feed), and the
+6.x fix requires a Jakarta-namespace migration (SB-GL-39).
+
+**Alternative implementation.** Cleartext password input is capped at
+72 characters via Bean Validation at both authentication endpoints:
+
+- `RegisterRequest.password` — `@Size(min = 6, max = 72)` at
+  `POST /api/v1/auth/register`
+- `AuthRequest.password` — `@Size(max = 72)` at `POST /api/v1/auth/login`
+
+Spring MVC rejects requests exceeding 72 characters with HTTP 400
+before any value reaches `BCryptPasswordEncoder.matches()`. The
+attack path (submit a password whose first 72 chars match the
+stored credential and whose tail is arbitrary) is blocked at the
+boundary. Test coverage:
+`AuthControllerTest.registerRejectsPasswordOverSeventyTwoChars` and
+`AuthControllerTest.loginRejectsPasswordOverSeventyTwoChars`.
+
+**Residual risk.** Pre-existing user records whose passwords were
+set with >72-char cleartext before this control landed are NOT
+re-keyable from this measure — their stored hashes still reflect the
+truncated first 72 bytes. Operationally a forced password reset
+would close that gap; for the development-phase POC this is
+accepted-risk and re-evaluated at AO sign-off.
+
+**Re-evaluation conditions (RFC 2119 SHALL).** The compensating
+control SHALL be removed and the gate SHALL fail under any of:
+
+- `spring-security-crypto` ≥ 5.7.16 becomes available on public Maven
+  Central (then bump and revert this control).
+- Spring Boot 3.x migration (SB-GL-39) brings the 6.x line.
+
+The `.trivyignore` entry for CVE-2025-22228 cross-references this
+section as evidence of decision pathway, per [SP 800-37 Rev. 2][rmf]
+risk-acceptance framing.
+
 ### OSCAL representation
 
 These tailoring decisions are represented in the project's OSCAL
@@ -175,6 +223,7 @@ conformance with [SSDF PS.3.1][ssdf] and OMB M-24-15
 [slsa10]: https://slsa.dev/spec/v1.0/
 [sb-gl-6]: https://gitlab.com/doolin/springboard/-/work_items/6
 [sb-gl-21]: https://gitlab.com/doolin/springboard/-/work_items/21
+[cve-22228]: https://spring.io/security/cve-2025-22228
 
 ## What to expect
 
