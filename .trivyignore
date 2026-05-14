@@ -185,3 +185,28 @@ CVE-2025-22235
 # the predictable-temp-dir attack surface is absent.
 # Fix: spring-boot 3.5.14 / 4.0.6. Removal: SB-GL-39 Spring Boot 3 migration.
 CVE-2026-40973
+
+# CVE-2025-41249 — spring-core 5.3.39 (SB-GL-49)
+# Spring Framework annotation-detection mechanism may not correctly
+# resolve security annotations on methods within type hierarchies that
+# have a parameterized super type with unbounded generics. When such
+# annotations are used for authorization decisions, the check can be
+# silently skipped — authorization bypass.
+# Exploit requires: (1) `@EnableMethodSecurity` (or the deprecated
+# `@EnableGlobalMethodSecurity`), (2) security annotations like
+# `@PreAuthorize`/`@PostAuthorize`/`@Secured`/`@RolesAllowed` placed on
+# methods of generic superclasses or interfaces.
+# Audit: `grep -rn "@EnableMethodSecurity\|@EnableGlobalMethodSecurity\|
+# @PreAuthorize\|@PostAuthorize\|@Secured\|@RolesAllowed" src/main/java/`
+# returns zero matches. This application does NOT use method-level
+# security at all — security is enforced exclusively via the
+# `HttpSecurity.authorizeHttpRequests(...)` request-matcher chain in
+# SecurityConfig. The annotation-resolution code path is never invoked.
+# Fix: spring-framework 5.3.45 / 6.1.23 / 6.2.11. The 5.3.45 release
+# exists in VMware Tanzu Spring Runtime (commercial / enterprise feed)
+# but is NOT published to public Maven Central; verified
+# `mvn dependency:resolve` for `spring-framework-bom:5.3.45` returns
+# `Non-resolvable import POM`. Public Maven Central paths are closed
+# until Spring Boot 3.x migration.
+# Removal: SB-GL-39 Spring Boot 3 migration (pulls in 6.2.x line).
+CVE-2025-41249
