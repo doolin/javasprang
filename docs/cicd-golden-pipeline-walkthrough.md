@@ -45,11 +45,14 @@ jobs:
     with:
       java-version: "17"
       node-version: "20.11.1"
-      # Initial baseline: gate the build on CRITICAL only. HIGH findings are
-      # still captured as evidence (Trivy JSON step) but not failing yet —
-      # remediation tracked separately. Raise back to "CRITICAL,HIGH" once
-      # the baseline is clean.
-      trivy-severity: "CRITICAL"
+      # Gate the build on CRITICAL and HIGH. Baseline cleared via SB-GL-26/
+      # 27/28 (cluster suppressions with code-path audits), SB-GL-47 (postgresql
+      # bump), SB-GL-48 (spring-boot suppressions), SB-GL-49 (spring-core
+      # suppress), SB-GL-50 (BCrypt-input compensating control), SB-GL-51
+      # (jackson-bom bump). Every HIGH finding is either remediated at the
+      # dependency level or documented in .trivyignore with a code-path audit
+      # + SP 800-53 SI-2 alternative-implementation rationale.
+      trivy-severity: "CRITICAL,HIGH"
     permissions:
       contents: read
       id-token: write
@@ -58,7 +61,9 @@ jobs:
     secrets: inherit
 ```
 
-The caller passes repo-specific inputs (Java 17, Node 20, CRITICAL-only Trivy gate) and inherits secrets. The `compliance` job is the gate — nothing downstream runs if it fails.
+The caller passes repo-specific inputs (Java 17, Node 20, CRITICAL+HIGH Trivy gate) and inherits secrets. The `compliance` job is the gate — nothing downstream runs if it fails.
+
+**Gate elevation history.** From inception through SB-GL-28, the Trivy gate ran at `CRITICAL` only — HIGH findings were captured as evidence (JSON step) but did not fail the build. That was a deliberate development-phase compromise: gate elevation requires a clean HIGH baseline, which required first auditing or remediating every HIGH finding on master. After the cluster-and-decomposed CVE work landed (SB-GL-26 through SB-GL-51 in 2026-05-13), the local Trivy baseline reached zero unsuppressed HIGH and the elevation became safe. SB-GL-29 ([commit forthcoming]) flips the gate to `CRITICAL,HIGH` in both forge callers — turning previously-captured-but-not-gated HIGH evidence into actively-gated security posture. This is the assurance-vs-compliance close-out called out in the project's strategic-thread memory.
 
 ## 2. The Golden Pipeline (Reusable Workflow)
 
