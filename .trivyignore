@@ -146,3 +146,42 @@ CVE-2024-49338
 # requirement) or (b) SB-GL-39 Spring Boot 3 migration brings jackson
 # 2.15+ which has the requested guards.
 CVE-2023-35116
+
+# --- SB-GL-48: spring-boot BOM-locked cluster (2 CVEs) ---
+# Both CVEs are pinned to spring-boot 2.7.18, the terminal release of
+# the 2.7.x OSS line. Fix versions are in the 3.x / 4.x major lines
+# only; no 2.7.x backport exists. Authoritative remediation is the
+# Spring Boot 2.7 → 3.x migration tracked at SB-GL-39.
+# Audited 2026-05-13. Quarterly review due 2026-08-13.
+
+# CVE-2025-22235 — spring-boot 2.7.18
+# `EndpointRequest.to()` creates a matcher for `null/**` when the
+# referenced actuator endpoint is disabled or not exposed, potentially
+# leaving the `/null` path unprotected if the application handles it.
+# Exploit requires: (1) Spring Security present, (2) `EndpointRequest.to()`
+# used in the security chain, (3) the referenced endpoint disabled or
+# unexposed, (4) the app routes `/null`.
+# Audit: `grep -rn "EndpointRequest\|@Endpoint\|actuator" src/main/java/ pom.xml`
+# returns zero matches. This application does NOT include
+# spring-boot-starter-actuator at all — the EndpointRequest API is not
+# in the classpath and cannot be referenced. The exploit precondition
+# (use of EndpointRequest.to()) is impossible to satisfy in this codebase.
+# Fix: spring-boot 3.3.11 / 3.4.5. Removal: SB-GL-39 Spring Boot 3 migration.
+CVE-2025-22235
+
+# CVE-2026-40973 — spring-boot 2.7.18
+# `ApplicationTemp` accepts a predictable temp directory without
+# verifying that the application controls it. A local attacker on the
+# same host can race-create the directory and then read session
+# information or deploy a gadget chain for RCE.
+# Exploit requires: `server.servlet.session.persistent=true` so that
+# Spring writes session data to the predictable temp dir on the local
+# filesystem.
+# Audit: `grep -rn "session.persistent\|session\.store-dir\|ApplicationTemp"
+# src/main/resources/application*.properties pom.xml src/main/java/`
+# returns zero matches. Spring Boot's default for
+# `server.servlet.session.persistent` is `false`; this application
+# does not override it. No persistent session storage is enabled, so
+# the predictable-temp-dir attack surface is absent.
+# Fix: spring-boot 3.5.14 / 4.0.6. Removal: SB-GL-39 Spring Boot 3 migration.
+CVE-2026-40973
