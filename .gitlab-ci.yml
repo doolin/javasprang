@@ -31,9 +31,11 @@ variables:
   JAVA_VERSION: "17"
   NODE_VERSION: "22.22.2"
   FRONTEND_DIR: "src/main/frontend"
-  # Initial baseline (matches .github/workflows/ci-cd.yml). Raise to
-  # "CRITICAL,HIGH" once the HIGH baseline is clean.
-  TRIVY_SEVERITY: "CRITICAL"
+  # Gate the build on CRITICAL and HIGH. Matches .github/workflows/ci-cd.yml.
+  # Baseline cleared via SB-GL-26/27/28/47/48/49/50/51; every HIGH finding
+  # is remediated at the dependency level or documented in .trivyignore
+  # with a code-path audit + SP 800-53 SI-2 rationale.
+  TRIVY_SEVERITY: "CRITICAL,HIGH"
   NPM_AUDIT_LEVEL: "high"
   EVIDENCE_RETENTION_DAYS: "90"
   MAVEN_OPTS: "-Dmaven.repo.local=.m2/repository"

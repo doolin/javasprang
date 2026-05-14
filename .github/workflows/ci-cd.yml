@@ -26,11 +26,14 @@ jobs:
     with:
       java-version: "17"
       node-version: "22.22.2"
-      # Initial baseline: gate the build on CRITICAL only. HIGH findings are
-      # still captured as evidence (Trivy JSON step) but not failing yet —
-      # remediation tracked separately. Raise back to "CRITICAL,HIGH" once
-      # the baseline is clean.
-      trivy-severity: "CRITICAL"
+      # Gate the build on CRITICAL and HIGH. Baseline cleared via SB-GL-26/
+      # 27/28 (cluster suppressions with code-path audits), SB-GL-47 (postgresql
+      # bump), SB-GL-48 (spring-boot suppressions), SB-GL-49 (spring-core
+      # suppress), SB-GL-50 (BCrypt-input compensating control), SB-GL-51
+      # (jackson-bom bump). Every HIGH finding is either remediated at the
+      # dependency level or documented in .trivyignore with a code-path audit
+      # + SP 800-53 SI-2 alternative-implementation rationale.
+      trivy-severity: "CRITICAL,HIGH"
     permissions:
       # Caller bounds: must include the union of permissions any nested
       # job in golden-pipeline.yml requests, even for jobs gated `if:`
