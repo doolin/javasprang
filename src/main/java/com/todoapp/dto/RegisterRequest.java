@@ -13,8 +13,12 @@ public class RegisterRequest {
     @Email(message = "Email should be valid")
     private String email;
 
+    // Max 72 enforces BCryptPasswordEncoder.matches() input bounds, which is
+    // the compensating control for CVE-2025-22228 (SB-GL-50). Without this
+    // cap, BCrypt silently matches any password whose first 72 bytes match
+    // the stored hash's pre-image.
     @NotBlank(message = "Password is required")
-    @Size(min = 6, message = "Password must be at least 6 characters")
+    @Size(min = 6, max = 72, message = "Password must be between 6 and 72 characters")
     private String password;
 
     public String getUsername() { return username; }

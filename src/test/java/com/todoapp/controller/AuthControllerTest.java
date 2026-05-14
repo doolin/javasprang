@@ -53,4 +53,28 @@ class AuthControllerTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.username").value("bob"));
     }
+
+    // 73-character password — one past the BCryptPasswordEncoder 72-byte
+    // input limit. The DTO @Size(max = 72) cap is the compensating control
+    // for CVE-2025-22228 (SB-GL-50); both register and login must reject
+    // longer inputs before they reach BCryptPasswordEncoder.matches().
+    private static final String PASSWORD_73 = "a".repeat(73);
+
+    @Test
+    @WithMockUser
+    void registerRejectsPasswordOverSeventyTwoChars() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/register")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"bob\",\"email\":\"b@b.com\",\"password\":\"" + PASSWORD_73 + "\"}"))
+            .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @WithMockUser
+    void loginRejectsPasswordOverSeventyTwoChars() throws Exception {
+        mockMvc.perform(post("/api/v1/auth/login")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"username\":\"alice\",\"password\":\"" + PASSWORD_73 + "\"}"))
+            .andExpect(status().isBadRequest());
+    }
 }
