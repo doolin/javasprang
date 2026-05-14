@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="UTF-8"?><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd"><html xmlns="http://www.w3.org/1999/xhtml" lang="en"><head><meta http-equiv="Content-Type" content="text/html;charset=UTF-8"/><link rel="stylesheet" href="../jacoco-resources/report.css" type="text/css"/><link rel="shortcut icon" href="../jacoco-resources/report.gif" type="image/gif"/><title>RegisterRequest.java</title><link rel="stylesheet" href="../jacoco-resources/prettify.css" type="text/css"/><script type="text/javascript" src="../jacoco-resources/prettify.js"></script></head><body onload="window['PR_TAB_WIDTH']=4;prettyPrint()"><div class="breadcrumb" id="breadcrumb"><span class="info"><a href="../jacoco-sessions.html" class="el_session">Sessions</a></span><a href="../index.html" class="el_report">todo-app</a> &gt; <a href="index.source.html" class="el_package">com.todoapp.dto</a> &gt; <span class="el_source">RegisterRequest.java</span></div><h1>RegisterRequest.java</h1><pre class="source lang-java linenums">package com.todoapp.dto;
+
+import javax.validation.constraints.Email;
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.Size;
+
+<span class="fc" id="L7">public class RegisterRequest {</span>
+    @NotBlank(message = &quot;Username is required&quot;)
+    @Size(min = 3, max = 50, message = &quot;Username must be between 3 and 50 characters&quot;)
+    private String username;
+
+    @NotBlank(message = &quot;Email is required&quot;)
+    @Email(message = &quot;Email should be valid&quot;)
+    private String email;
+
+    // Max 72 enforces BCryptPasswordEncoder.matches() input bounds, which is
+    // the compensating control for CVE-2025-22228 (SB-GL-50). Without this
+    // cap, BCrypt silently matches any password whose first 72 bytes match
+    // the stored hash's pre-image.
+    @NotBlank(message = &quot;Password is required&quot;)
+    @Size(min = 6, max = 72, message = &quot;Password must be between 6 and 72 characters&quot;)
+    private String password;
+
+<span class="fc" id="L24">    public String getUsername() { return username; }</span>
+<span class="fc" id="L25">    public void setUsername(String username) { this.username = username; }</span>
+
+<span class="fc" id="L27">    public String getEmail() { return email; }</span>
+<span class="fc" id="L28">    public void setEmail(String email) { this.email = email; }</span>
+
+<span class="fc" id="L30">    public String getPassword() { return password; }</span>
+<span class="fc" id="L31">    public void setPassword(String password) { this.password = password; }</span>
+}
+</pre><div class="footer"><span class="right">Created with <a href="http://www.jacoco.org/jacoco">JaCoCo</a> 0.8.11.202310140853</span></div></body></html>
