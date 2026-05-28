@@ -1,0 +1,42 @@
+# CODEOWNERS — GitLab automatic reviewer routing.
+# https://docs.gitlab.com/ee/user/project/codeowners/
+#
+# Tier behavior: this project runs on GitLab.com Free tier today.
+# CODEOWNERS surfaces the assigned owner on the MR page but does NOT
+# block merge on lack of code-owner approval. Required-approval
+# enforcement and the sectioned [SectionName] syntax are Premium /
+# Ultimate features. The file is informational at this tier; the
+# audit-trail value — declared ownership, assessable by a third
+# party — is real even without the enforcement gate.
+#
+# Self-approval note: moot on Free (no gate to satisfy). On Premium
+# with "Prevent approval by author of the merge request" enabled, a
+# single maintainer named here cannot satisfy the codeowner approval
+# requirement on their own MR. At that point either comment out the
+# global line below or add a second maintainer.
+#
+# Single-maintainer placeholder. Patterns are last-match-wins; the
+# global owner below catches anything not covered by a more specific
+# rule. Mirrors .github/CODEOWNERS so the two forge files stay in
+# lockstep.
+
+*                                       @doolin
+
+# CI configuration — highest-impact surface. Changes here can silently
+# weaken the evidence stream (severity flip, gate `when: never`,
+# suppressed audit-event JSON) and still produce a green pipeline.
+.gitlab-ci.yml                          @doolin
+.gitlab/ci/                             @doolin
+scripts/attest.mjs                      @doolin
+scripts/check-coverage.mjs              @doolin
+scripts/generate-oscal.js               @doolin
+scripts/verify-evidence.js              @doolin
+.trivyignore                            @doolin
+
+# Future area-scoped rules (uncomment + adjust handles when teams exist):
+# src/main/java/                        @doolin/backend-reviewers
+# src/main/frontend/                    @doolin/frontend-reviewers
+# scripts/                              @doolin/ci-reviewers
+# docs/                                 @doolin/docs-reviewers
+# pom.xml                               @doolin/backend-reviewers
+# src/main/frontend/package.json        @doolin/frontend-reviewers
