@@ -18,6 +18,14 @@ workflow:
     - if: '$CI_PIPELINE_SOURCE == "merge_request_event"'
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"'
 
+# Cancel a superseded pipeline when a new commit is pushed to the same ref.
+# Applies to every job by default, including jobs included from
+# .gitlab/ci/golden-pipeline.yml. The package and attest jobs override to
+# `false` because they produce immutable external state (JAR + checksum,
+# S3 upload, Solana memo) that must run to completion once started.
+default:
+  interruptible: true
+
 stages:
   - validate-commit       # fast-fail: SB-GL-# prefix check
   - compliance-check      # secrets-scan, test, vuln-scan in parallel
@@ -55,6 +63,7 @@ include:
 package:
   stage: package
   image: eclipse-temurin:17-jdk
+  interruptible: false   # Produces the release JAR + checksum; do not cancel mid-run.
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"'
   needs:
@@ -107,6 +116,7 @@ package:
 attest:
   stage: attest
   image: node:22-alpine
+  interruptible: false   # Uploads to S3 and writes a Solana memo; do not cancel mid-run.
   rules:
     - if: '$CI_COMMIT_BRANCH == $CI_DEFAULT_BRANCH && $CI_PIPELINE_SOURCE == "push"'
   needs:
