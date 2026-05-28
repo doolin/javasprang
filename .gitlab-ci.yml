@@ -74,9 +74,14 @@ package:
     - job: oscal
     - job: verify-evidence
   cache:
-    key: maven-$CI_COMMIT_REF_SLUG
-    paths:
-      - .m2/repository
+    # Inline (mirrors .cache-maven in golden-pipeline.yml; YAML anchors
+    # do not cross include: boundaries). Lockfile-content-keyed so it
+    # reuses across branches.
+    - key:
+        files:
+          - pom.xml
+      paths:
+        - .m2/repository
   before_script:
     - mkdir -p src/main/resources/static
     - |
